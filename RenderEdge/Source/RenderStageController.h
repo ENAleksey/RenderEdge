@@ -1,0 +1,33 @@
+#pragma once
+
+#include <d3d9.h>
+#include "GameHook.h"
+#include "Utils.h"
+
+enum class RenderStage : uint32
+{
+	UNREDERED,
+	UNKNOWN,
+	TERRAIN,
+	BUILDING_TERRAIN,
+	BUILDING,
+	FOOT_PRINT,
+	WAR_FOG,
+	UNIT_SHADOW,
+	UNIT,
+	TERRAIN_DECORATION,
+	UNIT_SELECTION_CIRCLE,
+	SCREEN_SELECTION_BOX,
+	WATER,
+	PORTRAIT,
+	UNIT_AND_EFFECT,
+	SKYBOX,
+	DESTRUCTIBLE,
+	PARTICLES,
+	UI_MINOR,
+	UI,
+	MAIN_MENU_UI,
+	MINIMAP
+};
+
+RenderStage GetRenderStage();

@@ -1,0 +1,263 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Source\basic_searcher.h" />
+    <ClInclude Include="Source\Blp.h" />
+    <ClInclude Include="Source\Buffer.h" />
+    <ClInclude Include="Source\CGameUI.h" />
+    <ClInclude Include="Source\CJass.h" />
+    <ClInclude Include="Source\Container.h" />
+    <ClInclude Include="Source\d3d8to9.hpp" />
+    <ClInclude Include="Source\d3d8types.hpp" />
+    <ClInclude Include="Source\disassembly.h" />
+    <ClInclude Include="Source\do_once.h" />
+    <ClInclude Include="Source\dyn_iat.h" />
+    <ClInclude Include="Source\Engine.h" />
+    <ClInclude Include="Source\Font.h" />
+    <ClInclude Include="Source\FontManager.h" />
+    <ClInclude Include="Source\foreach.h" />
+    <ClInclude Include="Source\fp_call.h" />
+    <ClInclude Include="Source\FreeTypeFont.h" />
+    <ClInclude Include="Source\GameHook.h" />
+    <ClInclude Include="Source\GameOffsets.h" />
+    <ClInclude Include="Source\GUI.h" />
+    <ClInclude Include="Source\iat.h" />
+    <ClInclude Include="Source\iat_manager.h" />
+    <ClInclude Include="Source\import_address_table.h" />
+    <ClInclude Include="Source\inline.h" />
+    <ClInclude Include="Source\Input.h" />
+    <ClInclude Include="Source\int_t.h" />
+    <ClInclude Include="Source\JassApi.h" />
+    <ClInclude Include="Source\Jpeg.h" />
+    <ClInclude Include="Source\Log.h" />
+    <ClInclude Include="Source\memory_protect.h" />
+    <ClInclude Include="Source\memory_search.h" />
+    <ClInclude Include="Source\MPQ.h" />
+    <ClInclude Include="Source\nf_register.h" />
+    <ClInclude Include="Source\pe_reader.h" />
+    <ClInclude Include="Source\PostProcess.h" />
+    <ClInclude Include="Source\PostProcessManager.h" />
+    <ClInclude Include="Source\PP_Tonemap.h" />
+    <ClInclude Include="Source\RenderStageController.h" />
+    <ClInclude Include="Source\replace_pointer.h" />
+    <ClInclude Include="Source\signal.h" />
+    <ClInclude Include="Source\Storm.h" />
+    <ClInclude Include="Source\Texture.h" />
+    <ClInclude Include="Source\TextureManager.h" />
+    <ClInclude Include="Source\Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\basic_searcher.cpp" />
+    <ClCompile Include="Source\Blp.cpp" />
+    <ClCompile Include="Source\Buffer.cpp" />
+    <ClCompile Include="Source\CJass.cpp" />
+    <ClCompile Include="Source\d3d8to9_base.cpp" />
+    <ClCompile Include="Source\d3d8to9_device.cpp" />
+    <ClCompile Include="Source\d3d8to9_index_buffer.cpp" />
+    <ClCompile Include="Source\d3d8to9_surface.cpp" />
+    <ClCompile Include="Source\d3d8to9_swap_chain.cpp" />
+    <ClCompile Include="Source\d3d8to9_texture.cpp" />
+    <ClCompile Include="Source\d3d8to9_vertex_buffer.cpp" />
+    <ClCompile Include="Source\d3d8to9_volume.cpp" />
+    <ClCompile Include="Source\d3d8types.cpp" />
+    <ClCompile Include="Source\disassembly.cpp" />
+    <ClCompile Include="Source\DllMain.cpp" />
+    <ClCompile Include="Source\dyn_iat.cpp" />
+    <ClCompile Include="Source\Engine.cpp" />
+    <ClCompile Include="Source\Font.cpp" />
+    <ClCompile Include="Source\FontManager.cpp" />
+    <ClCompile Include="Source\FreeTypeFont.cpp" />
+    <ClCompile Include="Source\GameHook.cpp" />
+    <ClCompile Include="Source\GameOffsets.cpp" />
+    <ClCompile Include="Source\GUI.cpp" />
+    <ClCompile Include="Source\iat.cpp" />
+    <ClCompile Include="Source\iat_manager.cpp" />
+    <ClCompile Include="Source\import_address_table.cpp" />
+    <ClCompile Include="Source\inline.cpp" />
+    <ClCompile Include="Source\Input.cpp" />
+    <ClCompile Include="Source\JassApi.cpp" />
+    <ClCompile Include="Source\Jpeg.cpp" />
+    <ClCompile Include="Source\memory_protect.cpp" />
+    <ClCompile Include="Source\memory_search.cpp" />
+    <ClCompile Include="Source\MPQ.cpp" />
+    <ClCompile Include="Source\MultiWar3.cpp" />
+    <ClCompile Include="Source\nf_register.cpp" />
+    <ClCompile Include="Source\pe_reader.cpp" />
+    <ClCompile Include="Source\PostProcess.cpp" />
+    <ClCompile Include="Source\PostProcessManager.cpp" />
+    <ClCompile Include="Source\PP_Tonemap.cpp" />
+    <ClCompile Include="Source\RenderStageController.cpp" />
+    <ClCompile Include="Source\replace_pointer.cpp" />
+    <ClCompile Include="Source\Storm.cpp" />
+    <ClCompile Include="Source\Texture.cpp" />
+    <ClCompile Include="Source\TextureManager.cpp" />
+    <ClCompile Include="Source\Utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RenderEdge.rc" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{AD0FD62D-569E-4D3E-84BE-F035FCAFC53D}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>RenderEdge</RootNamespace>
+    <WindowsTargetPlatformVersion>7.1</WindowsTargetPlatformVersion>
+    <ProjectName>RenderEdge</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141_xp</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(SolutionDir)ThirdParty\Detours\include;$(SolutionDir)ThirdParty\jpeg\include;$(SolutionDir)ThirdParty\FreeType\include;$(DXSDK_DIR)\Include;$(IncludePath)</IncludePath>
+    <SourcePath>$(VC_SourcePath)</SourcePath>
+    <LibraryPath>$(SolutionDir)ThirdParty\FreeType\lib;$(SolutionDir)ThirdParty\jpeg\lib;$(SolutionDir)ThirdParty\Detours\lib;$(DXSDK_DIR)\Lib\x86;$(LibraryPath)</LibraryPath>
+    <TargetName>RenderEdge</TargetName>
+    <OutDir>$(SolutionDir)Bin\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>RenderEdge.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>RenderEdge.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeaderFile />
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>No</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <ModuleDefinitionFile>RenderEdge.def</ModuleDefinitionFile>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

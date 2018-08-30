@@ -1,0 +1,311 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Base">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Systems">
+      <UniqueIdentifier>{0249543c-b9d2-4dba-adc6-9c39d9264e07}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Warcraft 3">
+      <UniqueIdentifier>{df4483af-e7c3-4d9e-885f-5b51d9eb7b0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Warcraft 3\Hook">
+      <UniqueIdentifier>{7197d6ee-93d2-4bd7-9a5e-85a635dd9ea1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Font Manager">
+      <UniqueIdentifier>{ab79a22e-1767-40a1-aee2-dc737118ef91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Texture Manager">
+      <UniqueIdentifier>{023d6349-3ddc-4050-b554-c3bea012061f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{7b1d62b3-c51e-4c0e-ab08-4d08d2431e02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\PostProcess Manager">
+      <UniqueIdentifier>{e4adb9a2-e3d3-4ee9-a8ca-9a0d62a315ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Base\Direct3D8">
+      <UniqueIdentifier>{3fbb7a05-4922-42a5-b708-187d46786d79}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Base\Direct3D9">
+      <UniqueIdentifier>{a76b0494-3300-4aab-908f-7b706022772d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\fp_call.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\iat.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\import_address_table.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\memory_protect.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\pe_reader.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\replace_pointer.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GUI.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\JassApi.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FreeTypeFont.h">
+      <Filter>Systems\Font Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Font.h">
+      <Filter>Systems\Font Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostProcess.h">
+      <Filter>Systems\PostProcess Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PostProcessManager.h">
+      <Filter>Systems\PostProcess Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\PP_Tonemap.h">
+      <Filter>Systems\PostProcess Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\TextureManager.h">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Texture.h">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameOffsets.h">
+      <Filter>Warcraft 3</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\GameHook.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CJass.h">
+      <Filter>Warcraft 3</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\inline.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\iat_manager.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\foreach.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\dyn_iat.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\do_once.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\disassembly.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\memory_search.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\nf_register.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\signal.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\basic_searcher.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Container.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Buffer.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Blp.h">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Jpeg.h">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\RenderStageController.h">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Storm.h">
+      <Filter>Warcraft 3</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MPQ.h">
+      <Filter>Warcraft 3</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Log.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\d3d8types.hpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\d3d8to9.hpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\int_t.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FontManager.h">
+      <Filter>Systems\Font Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\CGameUI.h">
+      <Filter>Systems</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\iat.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\import_address_table.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\memory_protect.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\pe_reader.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\replace_pointer.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine.cpp">
+      <Filter>Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GUI.cpp">
+      <Filter>Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\JassApi.cpp">
+      <Filter>Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input.cpp">
+      <Filter>Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FreeTypeFont.cpp">
+      <Filter>Systems\Font Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Font.cpp">
+      <Filter>Systems\Font Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\PostProcess.cpp">
+      <Filter>Systems\PostProcess Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\PostProcessManager.cpp">
+      <Filter>Systems\PostProcess Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\PP_Tonemap.cpp">
+      <Filter>Systems\PostProcess Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\TextureManager.cpp">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Texture.cpp">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameOffsets.cpp">
+      <Filter>Warcraft 3</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameHook.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\CJass.cpp">
+      <Filter>Warcraft 3</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\inline.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\iat_manager.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\dyn_iat.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\disassembly.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\memory_search.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\nf_register.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\basic_searcher.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Utils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Buffer.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Blp.cpp">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Jpeg.cpp">
+      <Filter>Systems\Texture Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\RenderStageController.cpp">
+      <Filter>Warcraft 3\Hook</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Storm.cpp">
+      <Filter>Warcraft 3</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DllMain.cpp">
+      <Filter>Base</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MultiWar3.cpp">
+      <Filter>Warcraft 3</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MPQ.cpp">
+      <Filter>Warcraft 3</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_surface.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_swap_chain.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_texture.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_vertex_buffer.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_volume.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8types.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_base.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_device.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\d3d8to9_index_buffer.cpp">
+      <Filter>Base\Direct3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FontManager.cpp">
+      <Filter>Systems\Font Manager</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RenderEdge.rc" />
+  </ItemGroup>
+</Project>
