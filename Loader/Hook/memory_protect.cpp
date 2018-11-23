@@ -1,6 +1,6 @@
 #include "memory_protect.h"
 
-namespace base { namespace hook { namespace detail {
+namespace hook { namespace detail {
 
 	memory_protect::memory_protect(uintptr_t address, size_t size)
 		: success_(false)
@@ -29,4 +29,4 @@ namespace base { namespace hook { namespace detail {
 	{
 		return success_;
 	}
-}}}
+}}

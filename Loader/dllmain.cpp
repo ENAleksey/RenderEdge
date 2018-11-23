@@ -1,81 +1,87 @@
-#include <SDKDDKVer.h>
 #define WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
-#include <sstream>
+#include <string>
+#include "Hook/fp_call.h"
+#include "Hook/iat.h"
 
-#include "fp_call.h"
-#include "iat.h"
 
-char current_dir[300];
+uintptr_t address_LoadLibraryA = 0;
+std::wstring RenderEdgePath;
 
-void Message(const std::string & msg)
+void Message(const std::wstring& msg)
 {
-	MessageBoxA(nullptr, msg.c_str(), "RenderEdge_loader.dll", MB_OK | MB_ICONERROR);
+	MessageBoxW(nullptr, msg.c_str(), L"RenderEdge_loader.dll", MB_OK | MB_ICONERROR | MB_TOPMOST);
 }
 
-
-bool FileExists(const char* fname)
+bool FileExists(const std::wstring& fileName)
 {
-	return GetFileAttributesA(fname) != DWORD(-1);
+	return GetFileAttributesW(fileName.c_str()) != DWORD(-1);
 }
 
-void LoadDll(const std::string& patch)
+std::wstring GetModulePath(HMODULE hModule)
 {
+	wchar_t path[MAX_PATH];
+	GetModuleFileNameW(hModule, path, sizeof(path));
+	std::wstring filePath = path;
+
+	size_t pos = filePath.rfind('\\');
+	if (pos == std::wstring::npos)
+		return L"";
+
+	return filePath.substr(0, pos + 1);
+}
+
+HMODULE LoadDll(const std::wstring& patch)
+{
+	HMODULE hModule = nullptr;
+
 	if (FileExists(patch.c_str()))
 	{
-		if (!LoadLibraryA(patch.c_str()))
-			Message("Failed to load:\n" + patch);
+		hModule = LoadLibraryW(patch.c_str());
+		if (!hModule)
+		{
+			Message(L"Failed to load:\n" + patch);
+		}
 	}
 	else
-		Message("File not found:\n" + patch);
+	{
+		Message(L"File not found:\n" + patch);
+	}
+
+	return hModule;
 }
 
 
-HMODULE hGameDll = 0;
-uintptr_t RealLoadLibraryA = 0;
-HMODULE __stdcall FakeLoadLibraryA(LPCSTR lpFilePath)
+HMODULE __stdcall LoadLibraryA_proxy(LPCSTR lpFilePath)
 {
 	if (strcmp(lpFilePath, "Game.dll") == 0)
 	{
+		HMODULE hGameDll = LoadLibraryW(L"Game.dll");
+
 		if (!hGameDll)
 		{
-			hGameDll = ::LoadLibraryA("Game.dll");
-			if (!hGameDll)
-			{
-				hGameDll = ::LoadLibraryA("Game.dll");
-				if (!hGameDll)
-				{
-					return hGameDll;
-				}
-			}
-
-
-
-			std::string patch = std::string(current_dir) + "RenderEdge_exp.dll";
-			if (FileExists(patch.c_str()))
-			{
-				LoadDll(std::string(current_dir) + "AntTweakBar.dll");
-				if (!LoadLibraryA(patch.c_str()))
-					Message("Failed to load:\n" + patch);
-			}
-			else
-				LoadDll(std::string(current_dir) + "RenderEdge.dll");
-
-
-			/*std::string patch = std::string(current_dir) + "AntTweakBar.dll";
-			if (FileExists(patch.c_str()))
-			{
-				if (!LoadLibraryA(patch.c_str()))
-					Message("Failed to load:\n" + patch);
-			}
-
-			LoadDll(std::string(current_dir) + "RenderEdge.dll");*/
-
-			return hGameDll;
+			return nullptr;
 		}
+
+		std::wstring path = RenderEdgePath + L"RenderEdge_exp.dll";
+		if (FileExists(path.c_str()))
+		{
+			LoadDll(RenderEdgePath + L"AntTweakBar.dll");
+			if (!LoadLibraryW(path.c_str()))
+			{
+				Message(L"Failed to load:\n" + path);
+			}
+		}
+		else
+		{
+			LoadDll(RenderEdgePath + L"RenderEdge.dll");
+		}
+
+		return hGameDll;
 	}
 
-	return std_call<HMODULE>(RealLoadLibraryA, lpFilePath);
+	return std_call<HMODULE>(address_LoadLibraryA, lpFilePath);
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReserved)
@@ -84,18 +90,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD  ul_reason_for_call, LPVOID lpReser
 	{
 		DisableThreadLibraryCalls(hModule);
 
-		int pp[3];
-		char p1[300], p2[300], *p3;
-		GetModuleFileNameA(hModule, p1, sizeof(p1));
-		GetFullPathNameA(p1, sizeof(p2), p2, &p3);
-		pp[1] = lstrlenA(p2);
-		pp[2] = lstrlenA(p3);
-		pp[0] = pp[1] - pp[2] + 1;
-		lstrcpynA(current_dir, p2, pp[0]);
+		RenderEdgePath = GetModulePath(hModule);
+		address_LoadLibraryA = hook::iat(L"war3.exe", "kernel32.dll", "LoadLibraryA", (uintptr_t)LoadLibraryA_proxy);
+	}
+	else if (ul_reason_for_call == DLL_PROCESS_DETACH)
+	{
 
-		RealLoadLibraryA = base::hook::iat(L"war3.exe", "kernel32.dll", "LoadLibraryA", (uintptr_t)FakeLoadLibraryA);
 	}
 
 	return TRUE;
 }
-

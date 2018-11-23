@@ -2,7 +2,7 @@
 
 #include <Windows.h>
 
-namespace base { namespace hook { namespace detail {
+namespace hook { namespace detail {
 	class memory_protect
 	{
 	public:
@@ -16,4 +16,4 @@ namespace base { namespace hook { namespace detail {
 		uintptr_t address_;
 		size_t    size_;
 	};
-}}}
+}}

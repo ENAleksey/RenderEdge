@@ -35,7 +35,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -80,6 +80,8 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Bin\$(Configuration)\</OutDir>
     <TargetName>RenderEdge_loader</TargetName>
+    <IncludePath>$(IncludePath)</IncludePath>
+    <LibraryPath>$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -164,19 +166,19 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="iat.cpp" />
-    <ClCompile Include="import_address_table.cpp" />
-    <ClCompile Include="memory_protect.cpp" />
-    <ClCompile Include="pe_reader.cpp" />
-    <ClCompile Include="replace_pointer.cpp" />
+    <ClCompile Include="Hook\iat.cpp" />
+    <ClCompile Include="Hook\import_address_table.cpp" />
+    <ClCompile Include="Hook\memory_protect.cpp" />
+    <ClCompile Include="Hook\pe_reader.cpp" />
+    <ClCompile Include="Hook\replace_pointer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="fp_call.h" />
-    <ClInclude Include="iat.h" />
-    <ClInclude Include="import_address_table.h" />
-    <ClInclude Include="memory_protect.h" />
-    <ClInclude Include="pe_reader.h" />
-    <ClInclude Include="replace_pointer.h" />
+    <ClInclude Include="Hook\fp_call.h" />
+    <ClInclude Include="Hook\iat.h" />
+    <ClInclude Include="Hook\import_address_table.h" />
+    <ClInclude Include="Hook\memory_protect.h" />
+    <ClInclude Include="Hook\pe_reader.h" />
+    <ClInclude Include="Hook\replace_pointer.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

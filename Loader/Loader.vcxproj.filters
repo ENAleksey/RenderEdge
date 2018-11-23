@@ -5,47 +5,50 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="Source Files\Hook">
+      <UniqueIdentifier>{3a5c8283-e6dd-4098-a655-975aa292acb9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="import_address_table.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Hook\memory_protect.cpp">
+      <Filter>Source Files\Hook</Filter>
     </ClCompile>
-    <ClCompile Include="memory_protect.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Hook\pe_reader.cpp">
+      <Filter>Source Files\Hook</Filter>
     </ClCompile>
-    <ClCompile Include="pe_reader.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Hook\replace_pointer.cpp">
+      <Filter>Source Files\Hook</Filter>
     </ClCompile>
-    <ClCompile Include="replace_pointer.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Hook\iat.cpp">
+      <Filter>Source Files\Hook</Filter>
     </ClCompile>
-    <ClCompile Include="iat.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="Hook\import_address_table.cpp">
+      <Filter>Source Files\Hook</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="import_address_table.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="memory_protect.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pe_reader.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="replace_pointer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="fp_call.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="iat.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Hook\memory_protect.h">
+      <Filter>Source Files\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\pe_reader.h">
+      <Filter>Source Files\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\replace_pointer.h">
+      <Filter>Source Files\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\fp_call.h">
+      <Filter>Source Files\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\iat.h">
+      <Filter>Source Files\Hook</Filter>
+    </ClInclude>
+    <ClInclude Include="Hook\import_address_table.h">
+      <Filter>Source Files\Hook</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Loader.rc" />

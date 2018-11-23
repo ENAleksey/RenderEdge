@@ -4,7 +4,7 @@
 #include <Windows.h>
 #include <cstdint>
 
-namespace base { namespace hook { namespace detail {
+namespace hook { namespace detail {
 	class import_address_table
 	{
 	public:
@@ -22,4 +22,4 @@ namespace base { namespace hook { namespace detail {
 		win::pe_reader image_;
 		PIMAGE_IMPORT_DESCRIPTOR cur_import_ptr_;
 	};
-}}}
+}}

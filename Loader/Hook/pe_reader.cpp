@@ -1,6 +1,7 @@
 #include "pe_reader.h"
 
-namespace base { namespace win {
+namespace win
+{
 
 	pe_reader::pe_reader() 
 		: module_(0) 
@@ -74,4 +75,4 @@ namespace base { namespace win {
 
 		return nullptr;
 	}
-}}
+}

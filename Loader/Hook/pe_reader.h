@@ -3,7 +3,6 @@
 #include <Windows.h>
 #include <cstdint>
 
-namespace base {
 namespace win {
 
 	class pe_reader
@@ -25,6 +24,4 @@ namespace win {
 	private:
 		uintptr_t module_;
 	};
-}
-
 }

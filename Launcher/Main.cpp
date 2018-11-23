@@ -56,7 +56,7 @@ bool GetWarcraftPath()
 
 void UpdateConfigs(HINSTANCE hInstance)
 {
-	char path[256];
+	char path[MAX_PATH];
 	GetModuleFileNameA(hInstance, path, sizeof(path));
 	g_CurrentDir = utils::ExtractFilePath(path);
 
@@ -103,12 +103,12 @@ bool InjectDll(HANDLE process_handle, HANDLE thread_handle, string path)
 	if (FAILED(StringCchCopyA(code.dll_path, _countof(code.dll_path), path.c_str())))
 		return false;
 
-	uintptr_t pfLoadLibrary = (uintptr_t)GetProcAddress(GetModuleHandleA("kernel32"), "LoadLibraryA");
-	if (!pfLoadLibrary)
+	uintptr_t address_LoadLibraryA = (uintptr_t)GetProcAddress(GetModuleHandleA("kernel32"), "LoadLibraryA");
+	if (!address_LoadLibraryA)
 		return false;
 
 	code.push(code_base + offsetof(Code, dll_path));
-	code.call(pfLoadLibrary, code_base + code.size());
+	code.call(address_LoadLibraryA, code_base + code.size());
 
 	code.mov(assembler::eax, cxt.Eax);
 	code.mov(assembler::ebx, cxt.Ebx);
