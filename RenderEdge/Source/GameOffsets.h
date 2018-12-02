@@ -1,35 +1,42 @@
 #pragma once
-#include <cstdint>
+#include "Utils.h"
+
+extern uintptr_t address_GameBase;
 
 extern uintptr_t address_MouseEvent;
 extern uintptr_t address_WndProc;
 
+extern uintptr_t address_LockFPS;
+extern uintptr_t address_LockTextureSizeCmp;
+extern uintptr_t address_LockTextureSizeMov;
 extern uintptr_t address_localDelay;
 extern uintptr_t address_lanDelay;
 extern uintptr_t address_netDelay;
 
+extern uintptr_t address_MatrixPerspectiveFov;
+extern uintptr_t address_MatrixLookAt;
+extern uintptr_t address_RenderWorldObjects;
+extern uintptr_t address_RenderTranslucent;
+extern uintptr_t address_RenderOpaque;
+extern uintptr_t address_RenderWorld;
 extern uintptr_t address_BuildHPBars;
-extern uintptr_t address_CreateProjMatrix;
-extern uintptr_t address_LockFPS;
-extern uintptr_t address_LockTextureSizeCmp;
-extern uintptr_t address_LockTextureSizeMov;
-extern uintptr_t address_SetCameraField;
-extern uintptr_t address_SetCameraField_misc;
+extern uintptr_t address_BuildMainMenu;
+extern uintptr_t address_InitSceneView;
 
-extern uintptr_t address_render_state_sequence;
-extern uintptr_t address_render_target_switch;
-extern uintptr_t address_render_target_switch_default_case;
-extern uintptr_t address_render_mesh;
-extern uintptr_t address_render_particle;
-extern uintptr_t address_render_UnitAndEffect_func;
-extern uintptr_t address_render_Unknown1_func;
-extern uintptr_t address_render_MayjorUI_func;
-extern uintptr_t address_render_MinorUI_func;
-extern uintptr_t address_render_MiniMap_func;
-
+extern uintptr_t address_GetGameUI;
 extern uintptr_t address_SetFramePoint;
 extern uintptr_t address_SetFramePoint2;
 extern uintptr_t address_SetFrameWidth;
 extern uintptr_t address_SetFrameHeight;
+extern uintptr_t address_SetFrameText;
 
-void InitGameOffsets();
+extern uintptr_t address_GetTerrain;
+extern uintptr_t address_gxDevice;
+extern uintptr_t address_InitJassNatives;
+extern uintptr_t address_BindJassNative;
+
+extern uintptr_t address_ApplyFogOfWarEx;
+extern uintptr_t address_dwSceneSettings1;
+extern uintptr_t address_MiscDataGetColor;
+
+void InitGameOffsets(uint32 gameBuildVersion);

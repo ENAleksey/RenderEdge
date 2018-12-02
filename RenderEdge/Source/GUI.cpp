@@ -1,6 +1,6 @@
 #include "GUI.h"
 
-#include <windows.h>
+//#include <windows.h>
 #include <algorithm>
 
 #include "Input.h"
@@ -27,11 +27,11 @@ ICtrl::ICtrl()
 
 	m_Text = "";
 	m_bWrap = false;
-	m_TextAlignment = TextAlignment::Left;
+	m_TextAlignment = ETextAlignment::Left;
 	m_pFont = nullptr;
 
 	m_pParentCtrl = nullptr;
-	m_Anchor = Anchor::TopLeft;
+	m_Anchor = EAnchor::TopLeft;
 	m_iRelativeX = 0;
 	m_iRelativeY = 0;
 }
@@ -54,57 +54,57 @@ void ICtrl::UpdateAnchor()
 	{
 		offsetX = 0;
 		offsetY = 0;
-		relativeWidth = GetWindowWidth();
-		relativeHeight = GetWindowHeight();
+		relativeWidth = Input::GetWindowWidth();
+		relativeHeight = Input::GetWindowHeight();
 	}
 
 	switch (m_Anchor)
 	{
-	case Anchor::TopLeft:
+	case EAnchor::TopLeft:
 		m_iRelativeX = offsetX;
 		m_iRelativeY = offsetY;
 		break;
-	case Anchor::Top:
+	case EAnchor::Top:
 		m_iRelativeX = offsetX + relativeWidth / 2;
 		m_iRelativeY = offsetY;
 		break;
-	case Anchor::TopRight:
+	case EAnchor::TopRight:
 		m_iRelativeX = offsetX + relativeWidth;
 		m_iRelativeY = offsetY;
 		break;
-	case Anchor::Left:
+	case EAnchor::Left:
 		m_iRelativeX = offsetX;
 		m_iRelativeY = offsetY + relativeHeight / 2;
 		break;
-	case Anchor::Center:
+	case EAnchor::Center:
 		m_iRelativeX = offsetX + relativeWidth / 2;
 		m_iRelativeY = offsetY + relativeHeight / 2;
 		break;
-	case Anchor::Right:
+	case EAnchor::Right:
 		m_iRelativeX = offsetX + relativeWidth;
 		m_iRelativeY = offsetY + relativeHeight / 2;
 		break;
-	case Anchor::BottomLeft:
+	case EAnchor::BottomLeft:
 		m_iRelativeX = offsetX;
 		m_iRelativeY = offsetY + relativeHeight;
 		break;
-	case Anchor::Bottom:
+	case EAnchor::Bottom:
 		m_iRelativeX = offsetX + relativeWidth / 2;
 		m_iRelativeY = offsetY + relativeHeight;
 		break;
-	case Anchor::BottomRight:
+	case EAnchor::BottomRight:
 		m_iRelativeX = offsetX + relativeWidth;
 		m_iRelativeY = offsetY + relativeHeight;
 		break;
 	}
 }
 
-void ICtrl::SetTexture(Texture* pTexture)
+void ICtrl::SetTexture(Texture2D* pTexture)
 {
 	m_pTexture = pTexture;
 }
 
-void ICtrl::SetFont(Font* pFont)
+void ICtrl::SetFont(CFont* pFont)
 {
 	m_pFont = pFont;
 }
@@ -126,6 +126,9 @@ void ICtrl::Render(ID3DXSprite* pSprite)
 
 	if (m_bIsShow)
 	{
+		if (m_pTexture == nullptr || m_pTexture->IsEmpty())
+			return;
+			 
 		//if (m_pTexture == nullptr || m_pTexture->texture == nullptr)
 		//	m_pTexture = MainTextureManager->GetDefaultTexture();
 
@@ -133,12 +136,12 @@ void ICtrl::Render(ID3DXSprite* pSprite)
 
 		D3DXMATRIX matAll;
 		D3DXVECTOR2 trans = D3DXVECTOR2((float)GetX(), (float)GetY());
-		D3DXVECTOR2 scaling((float)m_iWidth / (float)m_pTexture->width, (float)m_iHeight / (float)m_pTexture->height);
+		D3DXVECTOR2 scaling((float)m_iWidth / (float)m_pTexture->GetWidth(), (float)m_iHeight / (float)m_pTexture->GetHeight());
 		D3DXVECTOR2 spriteCentre = D3DXVECTOR2((float)m_iWidth / 2, (float)m_iHeight / 2);
 		D3DXMatrixTransformation2D(&matAll, nullptr, 0.0f, &scaling, &spriteCentre, m_fAngle, &trans);
 		pSprite->SetTransform(&matAll);
 
-		pSprite->Draw(m_pTexture->texture, nullptr, nullptr, nullptr, m_iColor);
+		pSprite->Draw(m_pTexture->GetTexture(), nullptr, nullptr, nullptr, m_iColor);
 	}
 }
 
@@ -152,7 +155,7 @@ void ICtrl::RenderText(ID3DXSprite* pSprite)
 		UpdateAnchor();
 
 		if (m_pFont == nullptr) return;
-		BaseFont* curFont = m_pFont->GetNormal();
+		CBaseFont* curFont = m_pFont->GetNormal();
 		if (curFont == nullptr) return;
 
 		uint32 lineWidth = 0;
@@ -285,11 +288,11 @@ void ICtrl::RenderText(ID3DXSprite* pSprite)
 
 					if (lineWidth + wordWidth > m_iWidth)
 					{
-						if (m_TextAlignment == TextAlignment::Left)
+						if (m_TextAlignment == ETextAlignment::Left)
 							drawX = GetX();
-						else if (m_TextAlignment == TextAlignment::Center)
+						else if (m_TextAlignment == ETextAlignment::Center)
 							drawX = GetX() + m_iWidth / 2 - lineWidth / 2;
-						else if (m_TextAlignment == TextAlignment::Right)
+						else if (m_TextAlignment == ETextAlignment::Right)
 							drawX = GetX() + m_iWidth - lineWidth;
 
 						drawY += curFont->pMetrics.height + curFont->pMetrics.externalleading;
@@ -320,7 +323,7 @@ void ICtrl::RenderText(ID3DXSprite* pSprite)
 			pSprite->SetTransform(&mat);
 
 			RECT rectChar = { curCharInfo.x, curCharInfo.y, curCharInfo.x + curCharInfo.image_width + curFont->pMargin, curCharInfo.y + curFont->pMetrics.height };
-			pSprite->Draw(curFont->pTexture->texture, &rectChar, 0, 0, curColor);
+			pSprite->Draw(curFont->pTexture->GetTexture(), &rectChar, 0, 0, curColor);
 
 			//================================================
 
@@ -332,20 +335,22 @@ void ICtrl::RenderText(ID3DXSprite* pSprite)
 
 
 
-GUI* MainGUI;
+CGUI* CustomUI;
 
-GUI::GUI(IDirect3DDevice9* pDevice) : m_pDevice(pDevice)
+CGUI::CGUI(IDirect3DDevice9* pDevice) : m_pDevice(pDevice)
 {
 	if (D3DXCreateSprite(m_pDevice, &m_pSprite) != S_OK)
-		Message("D3DXCreateSprite failed!", "GUI::GUI");
+		Message("D3DXCreateSprite failed!", "CGUI::CGUI");
 }
 
-GUI::~GUI()
+CGUI::~CGUI()
 {
+	SAFE_RELEASE(m_pSprite);
+
 	Release();
 }
 
-uint32 GUI::GetHeight(uint32 id)
+uint32 CGUI::GetCtrlHeight(uint32 id)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -355,7 +360,7 @@ uint32 GUI::GetHeight(uint32 id)
 	return pCtrl->m_iHeight;
 }
 
-uint32 GUI::GetWidth(uint32 id)
+uint32 CGUI::GetCtrlWidth(uint32 id)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -365,7 +370,7 @@ uint32 GUI::GetWidth(uint32 id)
 	return pCtrl->m_iWidth;
 }
 
-void GUI::SetSize(uint32 id, int32 width, int32 height)
+void CGUI::SetCtrlSize(uint32 id, int32 width, int32 height)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -379,7 +384,7 @@ void GUI::SetSize(uint32 id, int32 width, int32 height)
 }
 
 
-bool GUI::IsText(uint32 id)
+bool CGUI::CtrlIsText(uint32 id)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -389,7 +394,7 @@ bool GUI::IsText(uint32 id)
 	return (pCtrl->m_Text.empty() == false);
 }
 
-void GUI::Show(uint32 id, bool isShow)
+void CGUI::ShowCtrl(uint32 id, bool isShow)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -399,7 +404,7 @@ void GUI::Show(uint32 id, bool isShow)
 	pCtrl->m_bIsShow = isShow;
 }
 
-void GUI::SetDepth(uint32 id, float fDepth)
+void CGUI::SetCtrlDepth(uint32 id, float fDepth)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -409,7 +414,7 @@ void GUI::SetDepth(uint32 id, float fDepth)
 	pCtrl->m_fDepth = fDepth;
 }
 
-void GUI::SetZOrder(uint32 id, int32 iZOrder)
+void CGUI::SetCtrlZOrder(uint32 id, int32 iZOrder)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -420,7 +425,7 @@ void GUI::SetZOrder(uint32 id, int32 iZOrder)
 	Sort();
 }
 
-void GUI::SetAngle(uint32 id, float val)
+void CGUI::SetCtrlAngle(uint32 id, float val)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -430,7 +435,7 @@ void GUI::SetAngle(uint32 id, float val)
 	pCtrl->m_fAngle = val;
 }
 
-void GUI::SetTexture(uint32 id, const std::string& filename)
+void CGUI::SetCtrlTexture(uint32 id, const std::string& filename)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -440,37 +445,40 @@ void GUI::SetTexture(uint32 id, const std::string& filename)
 	if (!pCtrl->m_Text.empty())
 		pCtrl->m_Text.clear();
 
-	if (MainTextureManager->GetTexture(filename) == nullptr)
+	if (!TextureManager)
+		return;
+
+	if (TextureManager->GetTexture(filename) == nullptr)
 	{
-		if (MainTextureManager->CreateTextureFromMPQ(nullptr, filename))
-			pCtrl->SetTexture(MainTextureManager->GetTexture(filename));
+		if (TextureManager->CreateTextureFromMPQ(nullptr, filename))
+			pCtrl->SetTexture(TextureManager->GetTexture(filename));
 		else
-			pCtrl->SetTexture(MainTextureManager->GetDefaultTexture());
+			pCtrl->SetTexture(TextureManager->GetDefaultTexture());
 	}
 	else
-		pCtrl->SetTexture(MainTextureManager->GetTexture(filename));
+		pCtrl->SetTexture(TextureManager->GetTexture(filename));
 }
 
-void GUI::SetFont(uint32 id, const std::string& name, uint32 size)
+void CGUI::SetCtrlFont(uint32 id, const std::string& name, uint32 size)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
-	if (pCtrl == nullptr)
+	if (!pCtrl || !FontManager)
 		return;
 
-	if (MainFontManager->GetFont(name, size) == nullptr)
+	if (FontManager->GetFont(name, size) == nullptr)
 	{
-		//if (MainFontManager->CreateFontFromMPQ(nullptr, name, size))
-		if (MainFontManager->CreateFontFromFile(name, size))
-			pCtrl->SetFont(MainFontManager->GetFont(name, size));
+		//if (FontManager->CreateFontFromMPQ(nullptr, name, size))
+		if (FontManager->CreateFontFromFile(name, size))
+			pCtrl->SetFont(FontManager->GetFont(name, size));
 		else
-			pCtrl->SetFont(MainFontManager->GetDefaultFont());
+			pCtrl->SetFont(FontManager->GetDefaultFont());
 	}
 	else
-		pCtrl->SetFont(MainFontManager->GetFont(name, size));
+		pCtrl->SetFont(FontManager->GetFont(name, size));
 }
 
-void GUI::SetAnchor(uint32 id, int32 parentId, Anchor anchor)
+void CGUI::SetCtrlAnchor(uint32 id, int32 parentId, EAnchor anchor)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -485,7 +493,7 @@ void GUI::SetAnchor(uint32 id, int32 parentId, Anchor anchor)
 		pCtrl->m_pParentCtrl = nullptr;
 }
 
-void GUI::SetTextAlignment(uint32 id, TextAlignment alignment)
+void CGUI::SetCtrlTextAlignment(uint32 id, ETextAlignment alignment)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -495,7 +503,7 @@ void GUI::SetTextAlignment(uint32 id, TextAlignment alignment)
 	pCtrl->m_TextAlignment = alignment;
 }
 
-void GUI::SetText(uint32 id, const std::string& text, bool bWrap)
+void CGUI::SetCtrlText(uint32 id, const std::string& text, bool bWrap)
 {
 	if (text.empty())
 		return;
@@ -509,7 +517,7 @@ void GUI::SetText(uint32 id, const std::string& text, bool bWrap)
 	pCtrl->m_bWrap = bWrap;
 
 	if (pCtrl->m_pFont == nullptr) return;
-	BaseFont* curFont = pCtrl->m_pFont->GetNormal();
+	CBaseFont* curFont = pCtrl->m_pFont->GetNormal();
 	if (curFont == nullptr) return;
 
 	int32 curWidth = 0;
@@ -648,7 +656,7 @@ void GUI::SetText(uint32 id, const std::string& text, bool bWrap)
 	pCtrl->m_iHeight = totalHeight;
 }
 
-void GUI::SetColor(uint32 id, uint32 argb)
+void CGUI::SetCtrlColor(uint32 id, uint32 argb)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -658,7 +666,7 @@ void GUI::SetColor(uint32 id, uint32 argb)
 	pCtrl->m_iColor = argb;
 }
 
-void GUI::SetPosition(uint32 id, int32 offsetX, int32 offsetY)
+void CGUI::SetCtrlPosition(uint32 id, int32 offsetX, int32 offsetY)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -669,7 +677,7 @@ void GUI::SetPosition(uint32 id, int32 offsetX, int32 offsetY)
 	pCtrl->m_iOffsetY = offsetY;
 }
 
-void GUI::Sort()
+void CGUI::Sort()
 {
 	auto sortCtrlsL =
 		[](const auto& first, const auto& second)
@@ -680,7 +688,7 @@ void GUI::Sort()
 	std::sort(m_vecCtrls.begin(), m_vecCtrls.end(), sortCtrlsL);
 }
 
-void GUI::New(uint32 id, int32 offsetX, int32 offsetY, uint32 width, uint32 height)
+void CGUI::NewCtrl(uint32 id, int32 offsetX, int32 offsetY, uint32 width, uint32 height)
 {
 	ICtrl* pCtrl = new ICtrl;
 
@@ -689,14 +697,18 @@ void GUI::New(uint32 id, int32 offsetX, int32 offsetY, uint32 width, uint32 heig
 	pCtrl->m_iHeight = height;
 	pCtrl->m_iWidth = width;
 	pCtrl->m_iId = id;
-	pCtrl->m_pFont = MainFontManager->GetDefaultFont();
-	pCtrl->m_pTexture = MainTextureManager->GetDefaultTexture();
+
+	if (FontManager)
+		pCtrl->m_pFont = FontManager->GetDefaultFont();
+
+	if (TextureManager)
+		pCtrl->m_pTexture = TextureManager->GetDefaultTexture();
 
 	m_vecCtrls.push_back(pCtrl);
 }
 
 
-void GUI::Delete(uint32 id)
+void CGUI::DeleteCtrl(uint32 id)
 {
 	ICtrl* pCtrl = GetCtrlFromID(id);
 
@@ -708,7 +720,7 @@ void GUI::Delete(uint32 id)
 }
 
 
-void GUI::Draw()
+void CGUI::Render()
 {
 	if (m_vecCtrls.size() > 0)
 	{
@@ -735,12 +747,12 @@ void GUI::Draw()
 	}
 }
 
-int32 GUI::GetCtrlFromMousePoint()
+int32 CGUI::GetCtrlFromMousePoint()
 {
-    return GetCtrlFromPoint(GetMouseXRelative(), GetMouseYRelative());
+    return GetCtrlFromPoint(Input::GetMouseXRelative(), Input::GetMouseYRelative());
 }
 
-int32 GUI::GetCtrlFromPoint(int32 x, int32 y)
+int32 CGUI::GetCtrlFromPoint(int32 x, int32 y)
 {
 	float minDepth = FLT_MAX;
 	int32 id = -1;
@@ -760,7 +772,7 @@ int32 GUI::GetCtrlFromPoint(int32 x, int32 y)
 	return id;
 }
 
-ICtrl* GUI::GetCtrlFromID(uint32 id)
+ICtrl* CGUI::GetCtrlFromID(uint32 id)
 {
 	for (const auto& pCtrl : m_vecCtrls)
 	{
@@ -774,20 +786,20 @@ ICtrl* GUI::GetCtrlFromID(uint32 id)
 	return nullptr;
 }
 
-void GUI::Release()
+void CGUI::Release()
 {
-	for (const auto& pCtrl : m_vecCtrls)
-		delete pCtrl;
+	for (auto& pCtrl : m_vecCtrls)
+		SAFE_DELETE(pCtrl);
 
 	m_vecCtrls.clear();
 }
 
-void GUI::OnLostDevice()
+void CGUI::OnLostDevice()
 {
 	m_pSprite->OnLostDevice();
 }
 
-void GUI::OnResetDevice()
+void CGUI::OnResetDevice()
 {
 	m_pSprite->OnResetDevice();
 }

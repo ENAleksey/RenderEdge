@@ -1,16 +1,7 @@
 #pragma once
 
-
-//+-----------------------------------------------------------------------------
-//| Included files
-//+-----------------------------------------------------------------------------
 #include <string>
-#include "int_t.h"
 
-
-//+-----------------------------------------------------------------------------
-//| Buffer class
-//+-----------------------------------------------------------------------------
 class BUFFER
 {
 public:
@@ -34,8 +25,8 @@ public:
 	}
 
 	void Resize(size_t NewSize);
-	uint8*       GetData(size_t Index = 0);
-	const uint8* GetData(size_t Index = 0) const;
+	unsigned char*       GetData(size_t Index = 0);
+	const unsigned char* GetData(size_t Index = 0) const;
 	size_t               GetSize() const;
 	char& operator [](size_t Index);
 	std::string const& Buf() const;

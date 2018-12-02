@@ -152,37 +152,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp">
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-      </PrecompiledHeader>
-      <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</CompileAsManaged>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="Hook\iat.cpp" />
-    <ClCompile Include="Hook\import_address_table.cpp" />
-    <ClCompile Include="Hook\memory_protect.cpp" />
-    <ClCompile Include="Hook\pe_reader.cpp" />
-    <ClCompile Include="Hook\replace_pointer.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Hook\fp_call.h" />
-    <ClInclude Include="Hook\iat.h" />
-    <ClInclude Include="Hook\import_address_table.h" />
-    <ClInclude Include="Hook\memory_protect.h" />
-    <ClInclude Include="Hook\pe_reader.h" />
-    <ClInclude Include="Hook\replace_pointer.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="Source\Hook\fp_call.h" />
+    <ClInclude Include="Source\Hook\iat.h" />
+    <ClInclude Include="Source\Hook\import_address_table.h" />
+    <ClInclude Include="Source\Hook\memory_protect.h" />
+    <ClInclude Include="Source\Hook\pe_reader.h" />
+    <ClInclude Include="Source\Hook\replace_pointer.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Loader.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\dllmain.cpp" />
+    <ClCompile Include="Source\Hook\iat.cpp" />
+    <ClCompile Include="Source\Hook\import_address_table.cpp" />
+    <ClCompile Include="Source\Hook\memory_protect.cpp" />
+    <ClCompile Include="Source\Hook\pe_reader.cpp" />
+    <ClCompile Include="Source\Hook\replace_pointer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

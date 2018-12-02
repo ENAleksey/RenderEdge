@@ -1,24 +1,46 @@
 #include "Utils.h"
-#include "Engine.h"
-#include "Log.h"
-#include "int_t.h"
 
+#include <stdarg.h>
 #include <memory>
+#include <intrin.h>
+#include <vector>
 
-void Message(const std::string & msg, const std::string & title)
+
+void Message(const std::string& msg, const std::string& title)
 {
-	MessageBoxA(nullptr, msg.c_str(), title.c_str(), MB_OK | MB_ICONERROR);
+	MessageBoxA(nullptr, msg.c_str(), title.c_str(), MB_OK | MB_ICONERROR | MB_TOPMOST);
 }
 
-void Message(const std::string & msg)
+void Message(const std::string& msg)
 {
 	Message(msg, "RenderEdge.dll");
+}
+
+void ExitMessage(const std::string& msg)
+{
+	if (!msg.empty())
+		Message(msg, "RenderEdge.dll");
+
+	TerminateProcess(GetCurrentProcess(), ERROR_SUCCESS);
 }
 
 
 namespace utils
 {
-	std::string get_ext(const std::string& st)
+	std::string GetModulePath(HMODULE hModule)
+	{
+		char path[MAX_PATH];
+		GetModuleFileNameA(hModule, path, sizeof(path));
+		std::string filePath = path;
+
+		size_t pos = filePath.rfind('\\');
+		if (pos == std::wstring::npos)
+			return "";
+
+		return filePath.substr(0, pos + 1);
+	}
+
+	std::string GetFileExtension(const std::string& st)
 	{
 		size_t pos = st.rfind('.');
 
@@ -28,6 +50,17 @@ namespace utils
 		return st.substr(pos + 1);
 	}
 
+	bool ParseFloat(const std::string& Stream, const std::string& Match, float& Value)
+	{
+		int Temp = Stream.find(Match);
+
+		if (Temp == -1)
+			return false;
+
+		Value = std::stof(Stream.substr(Temp + Match.size()));
+
+		return true;
+	}
 
 	wchar_t* utf8_to_unicode(char* utf8_string)
 	{
@@ -36,19 +69,16 @@ namespace utils
 		int32 res_len = MultiByteToWideChar(CP_UTF8, 0, utf8_string, -1, nullptr, 0);
 		if (res_len == 0)
 		{
-			LOG(logERROR) << "Failed to obtain utf8 string length";
 			return nullptr;
 		}
 		res = (wchar_t*)calloc(sizeof(wchar_t), res_len);
 		if (res == nullptr)
 		{
-			LOG(logERROR) << "Failed to allocate unicode string";
 			return nullptr;
 		}
 		err = MultiByteToWideChar(CP_UTF8, 0, utf8_string, -1, res, res_len);
 		if (err == 0)
 		{
-			LOG(logERROR) << "Failed to convert to unicode";
 			free(res);
 			return nullptr;
 		}
@@ -62,19 +92,16 @@ namespace utils
 		int32 res_len = WideCharToMultiByte(CP_ACP, 0, unicode_string, -1, nullptr, 0, nullptr, nullptr);
 		if (res_len == 0)
 		{
-			LOG(logERROR) << "Failed to obtain required cp1251 string length";
 			return nullptr;
 		}
 		res = (char*)calloc(sizeof(char), res_len);
 		if (res == nullptr)
 		{
-			LOG(logERROR) << "Failed to allocate cp1251 string";
 			return nullptr;
 		}
 		err = WideCharToMultiByte(CP_ACP, 0, unicode_string, -1, res, res_len, nullptr, nullptr);
 		if (err == 0)
 		{
-			LOG(logERROR) << "Failed to convert from unicode";
 			free(res);
 			return nullptr;
 		}
@@ -122,9 +149,43 @@ namespace utils
 		return fileName.substr(0, pos + 1);
 	}
 
-	bool FileExists(const std::string& name)
+	bool FileExists(const std::string& fileName)
 	{
-		return GetFileAttributesA(name.c_str()) != DWORD(-1);
+		const DWORD fileAttributes = GetFileAttributesA(fileName.c_str());
+		return (fileAttributes != INVALID_FILE_ATTRIBUTES) && (fileAttributes != FILE_ATTRIBUTE_DIRECTORY);
+	}
+}
+
+namespace math
+{
+	float Square(float x)
+	{
+		return x * x;
+	}
+
+	float Lerp(float a, float b, float x)
+	{
+		return (a * (1.0 - x)) + (b * x);
+	}
+
+	float Clamp(float x, float a, float b)
+	{
+		return x < a ? a : (x > b ? b : x);
+	}
+
+	float ToLinearSpace(float x)
+	{
+		return pow(x, 2.2f);
+	}
+
+	int32 FloorToInt(float x)
+	{
+		return _mm_cvt_ss2si(_mm_set_ss(x + x - 0.5f)) >> 1;
+	}
+
+	bool IsEqual(float a, float b, float e)
+	{
+		return abs(a - b) <= e;
 	}
 }
 

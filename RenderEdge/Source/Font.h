@@ -1,16 +1,16 @@
 #pragma once
 
 #include "FreeTypeFont.h"
-#include "Texture.h"
+#include "Texture2D.h"
 #include <memory>
 
-class BaseFont
+class CBaseFont
 {
 public:
-	BaseFont(IDirect3DDevice9* pDevice, const std::string& fontName, uint32 size, int32 style);
-	~BaseFont();
+	CBaseFont(IDirect3DDevice9* pDevice, const std::string& fontName, uint32 size, int32 style);
+	~CBaseFont();
 
-	Texture*    pTexture;       // onwed! glyph set texture
+	Texture2D*    pTexture;       // onwed! glyph set texture
 	TextMetrics pMetrics;
 	int32       pSurfaceWidth;  // width of glyph set texture (px)
 	int32       pSurfaceHeight; // height of glyph set texture (px)
@@ -20,23 +20,24 @@ public:
 	int32       pCount;
 };
 
-class Font
+class CFont
 {
 public:
-	Font();
-	~Font();
+	CFont();
+	~CFont();
 
 	bool CreateFromFile(IDirect3DDevice9* pDevice, const std::string& fontName, uint32 size);
 	bool CreateFromFileInMPQ(IDirect3DDevice9* pDevice, HANDLE archive, const std::string& fontName, uint32 size);
+	//void Release();
 
-	BaseFont* GetNormal();
-	BaseFont* GetBold();
-	BaseFont* GetItalic();
-	BaseFont* GetBoldItalic();
+	CBaseFont* GetNormal();
+	CBaseFont* GetBold();
+	CBaseFont* GetItalic();
+	CBaseFont* GetBoldItalic();
 
 private:
-	BaseFont* normalFont;
-	BaseFont* boldFont;
-	BaseFont* italicFont;
-	BaseFont* boldItalicFont;
+	CBaseFont* normalFont;
+	CBaseFont* boldFont;
+	CBaseFont* italicFont;
+	CBaseFont* boldItalicFont;
 };

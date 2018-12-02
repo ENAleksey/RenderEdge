@@ -3,23 +3,24 @@
 #include "Font.h"
 #include "Container.h"
 
-class FontManager
+class CFontManager
 {
 public:
-	FontManager(IDirect3DDevice9* pDevice);
+	CFontManager(IDirect3DDevice9* pDevice);
+	~CFontManager();
 
 	bool LoadFontFromMPQ(const std::string& fileName);
 	bool CreateFontFromFile(const std::string& fontName, uint32 size);
 	bool CreateFontFromMPQ(HANDLE archive, const std::string& fontName, uint32 size);
-	Font* GetFont(const std::string& fontName, uint32 size);
-	Font* GetDefaultFont();
+	CFont* GetFont(const std::string& fontName, uint32 size);
+	CFont* GetDefaultFont();
 	bool Remove(const std::string& fontName, uint32 size);
 	bool Remove(int32 id);
 
 private:
 	IDirect3DDevice9* m_pDevice;
-	CONTAINER<Font*> FontContainer;
-	Font* m_pDefaultFont;
+	CONTAINER<CFont*> FontContainer;
+	CFont* m_pDefaultFont;
 };
 
-extern FontManager* MainFontManager;
+extern CFontManager* FontManager;
