@@ -4,10 +4,10 @@
 #include FT_FREETYPE_H
 
 #include <d3d9.h>
-#include "Texture.h"
+#include "Texture2D.h"
 
 
-enum FontStyleFlags
+enum EFontStyleFlags
 {
 	FONT_STYLE_BOLD = 0x01,
 	FONT_STYLE_ITALIC = 0x02,
@@ -39,11 +39,11 @@ struct TextMetrics
 };
 
 
-class FreeTypeFont
+class CFreeTypeFont
 {
 public:
-	FreeTypeFont(const std::string& fileName, int32 size, int32 style);
-	~FreeTypeFont();
+	CFreeTypeFont(const std::string& fileName, int32 size, int32 style);
+	~CFreeTypeFont();
 
 	void GetMetrics(TextMetrics &metric);
 	void GetCharABC(int32 first, int32 count, CharABC *abc);
@@ -51,7 +51,7 @@ public:
 	void CalcTextureSizeForRange(int32 first, int32 count, int32 &width, int32 &height);
 	void CalcTextureSizeForRangeImpl(const TextMetrics &tm, CharABC *abc, int32 first, int32 count, int32 &width, int32 &height);
 
-	bool RenderGlyphsToSurface(IDirect3DDevice9* pd3dDevice, int32 first, int32 count, Texture* texture, int32 &width, int32 &height, int32 &margin, CharInfo *info);
+	bool RenderGlyphsToSurface(IDirect3DDevice9* pd3dDevice, int32 first, int32 count, Texture2D* texture, int32 &width, int32 &height, int32 &margin, CharInfo *info);
 
 private:
 	FT_ULong CharToIndex(char chr);

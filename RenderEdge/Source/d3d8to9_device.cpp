@@ -3,14 +3,12 @@
  * License: https://github.com/crosire/d3d8to9#license
  */
 
-#include <d3d9.h>
-#include <d3dx9.h>
-
 #include "d3d8to9.hpp"
 #include <regex>
 #include <assert.h>
 
 #include "Engine.h"
+#include "Log.h"
 
 struct VertexShaderInfo
 {
@@ -22,12 +20,11 @@ struct VertexShaderInfo
 Direct3DDevice8::Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9 *ProxyInterface, BOOL EnableZBufferDiscarding) :
 	D3D(d3d), ProxyInterface(ProxyInterface), ZBufferDiscarding(EnableZBufferDiscarding)
 {
-	D3D->AddRef();
+	ProxyAddressLookupTable = new AddressLookupTable(this);
 }
 Direct3DDevice8::~Direct3DDevice8()
 {
-	ProxyInterface->Release();
-	D3D->Release();
+	delete ProxyAddressLookupTable;
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::QueryInterface(REFIID riid, void **ppvObj)
@@ -51,46 +48,23 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::QueryInterface(REFIID riid, void **pp
 }
 ULONG STDMETHODCALLTYPE Direct3DDevice8::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3DDevice8::Release()
 {
-	ULONG LastRefCount = InterlockedExchange(&RefCount, RefCount);
-	
-	Direct3DSurface8 *const RenderTarget = CurrentRenderTarget;
-	Direct3DSurface8 *const DepthStencil = CurrentDepthStencilSurface;
+	// Rlease Engine Resources
+	if (Engine)
+		Engine->Release();
 
-	if (RenderTarget != nullptr &&
-		DepthStencil != nullptr &&
-		LastRefCount == 3)
-	{
-		CurrentRenderTarget = nullptr;
-		CurrentDepthStencilSurface = nullptr;
-		RenderTarget->Release();
-		DepthStencil->Release();
-	}
-	else if (RenderTarget != nullptr &&
-		LastRefCount == 2)
-	{
-		CurrentRenderTarget = nullptr;
-		RenderTarget->Release();
-	}
-	else if (DepthStencil != nullptr &&
-		LastRefCount == 2)
-	{
-		CurrentDepthStencilSurface = nullptr;
-		DepthStencil->Release();
-	}
+	ULONG LastRefCount = ProxyInterface->Release();
 
-	LastRefCount = InterlockedDecrement(&RefCount);
+	if (LastRefCount > 0)
+		LOG(WARNING) << "Reference count for 'IDirect3DDevice9' object " << this << " is inconsistent: " << LastRefCount << ", but expected 0.";
 
 	if (LastRefCount == 0)
 	{
-		if (MainEngine != nullptr)
-		{
-			delete MainEngine;
-			MainEngine = nullptr;
-		}
+		// Delete Engine
+		SAFE_DELETE(Engine);
 
 		delete this;
 	}
@@ -182,6 +156,24 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateAdditionalSwapChain(D3DPRESENT_
 	D3DPRESENT_PARAMETERS PresentParams;
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
 
+	// Get multisample quality level
+	if (PresentParams.MultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		DWORD QualityLevels = 0;
+		D3DDEVICE_CREATION_PARAMETERS CreationParams;
+		ProxyInterface->GetCreationParameters(&CreationParams);
+
+		if (D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal,
+			CreationParams.DeviceType, PresentParams.BackBufferFormat, PresentParams.Windowed,
+			PresentParams.MultiSampleType, &QualityLevels) == S_OK &&
+			D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal,
+				CreationParams.DeviceType, PresentParams.AutoDepthStencilFormat, PresentParams.Windowed,
+				PresentParams.MultiSampleType, &QualityLevels) == S_OK)
+		{
+			PresentParams.MultiSampleQuality = (QualityLevels != 0) ? QualityLevels - 1 : 0;
+		}
+	}
+
 	IDirect3DSwapChain9 *SwapChainInterface = nullptr;
 
 	const HRESULT hr = ProxyInterface->CreateAdditionalSwapChain(&PresentParams, &SwapChainInterface);
@@ -202,14 +194,50 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 		return D3DERR_INVALIDCALL;
 	}
 
+	g_pPresentParameters = *pPresentationParameters;
+
+	//if (!g_bVsyncEnabled)
+	//{
+	//	//pPresentationParameters->BackBufferWidth = 800;
+	//	//pPresentationParameters->BackBufferHeight = 600;
+	//	pPresentationParameters->Windowed = true;
+	//}
+	//else
+	//{
+	//	RECT rect;
+	//	GetClientRect(pPresentationParameters->hDeviceWindow, &rect);
+	//	pPresentationParameters->BackBufferWidth = 1600;// rect.right - rect.left;
+	//	pPresentationParameters->BackBufferHeight = 900;// rect.bottom - rect.top;
+	//	pPresentationParameters->Windowed = false;
+	//}
+
+	pCurrentRenderTarget = nullptr;
+
 	D3DPRESENT_PARAMETERS PresentParams;
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
-	g_pPresentParameters = pPresentationParameters;
+
+	// Get multisample quality level
+	if (PresentParams.MultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		DWORD QualityLevels = 0;
+		D3DDEVICE_CREATION_PARAMETERS CreationParams;
+		ProxyInterface->GetCreationParameters(&CreationParams);
+
+		if (D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal,
+			CreationParams.DeviceType, PresentParams.BackBufferFormat, PresentParams.Windowed,
+			PresentParams.MultiSampleType, &QualityLevels) == S_OK &&
+			D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal,
+				CreationParams.DeviceType, PresentParams.AutoDepthStencilFormat, PresentParams.Windowed,
+				PresentParams.MultiSampleType, &QualityLevels) == S_OK)
+		{
+			PresentParams.MultiSampleQuality = (QualityLevels != 0) ? QualityLevels - 1 : 0;
+		}
+	}
 
 	if (!g_bVsyncEnabled)
 	{
 		PresentParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-		PresentParams.FullScreen_RefreshRateInHz = 0;
+		PresentParams.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 	}
 
 	// Set FOURCC_INTZ format
@@ -220,19 +248,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 	PresentParams.AutoDepthStencilFormat = FOURCC_INTZ;
 	}*/
 
-
-	if (CurrentRenderTarget != nullptr)
-	{
-		CurrentRenderTarget->Release();
-		CurrentRenderTarget = nullptr;
-	}
-	if (CurrentDepthStencilSurface != nullptr)
-	{
-		CurrentDepthStencilSurface->Release();
-		CurrentDepthStencilSurface = nullptr;
-	}
-
-	MainEngine->OnLostDevice();
+	// Release Engine temporary resources
+	if (Engine)
+		Engine->OnLostDevice();
 
 	const HRESULT hr = ProxyInterface->Reset(&PresentParams);
 
@@ -241,32 +259,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 		return hr;
 	}
 
-	// Set default render target
-	IDirect3DSurface9 *RenderTargetInterface = nullptr;
-	IDirect3DSurface9 *DepthStencilInterface = nullptr;
-
-	ProxyInterface->GetRenderTarget(0, &RenderTargetInterface);
-	ProxyInterface->GetDepthStencilSurface(&DepthStencilInterface);
-
-	Direct3DSurface8 *RenderTargetProxyObject = nullptr;
-	Direct3DSurface8 *DepthStencilProxyObject = nullptr;
-
-	if (RenderTargetInterface != nullptr)
-	{
-		RenderTargetProxyObject = new Direct3DSurface8(this, RenderTargetInterface);
-
-		RenderTargetInterface->Release();
-	}
-	if (DepthStencilInterface != nullptr)
-	{
-		DepthStencilProxyObject = new Direct3DSurface8(this, DepthStencilInterface);
-
-		DepthStencilInterface->Release();
-	}
-
-	SetRenderTarget(RenderTargetProxyObject, DepthStencilProxyObject);
-
-	MainEngine->OnResetDevice();
+	// Recreate Engine temporary resources
+	if (Engine)
+		Engine->OnResetDevice();
 
 	return D3D_OK;
 }
@@ -274,7 +269,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Present(const RECT *pSourceRect, cons
 {
 	UNREFERENCED_PARAMETER(pDirtyRegion);
 
-	MainEngine->OnRender();
+
+	if (Engine)
+		Engine->OnPresent();
 
 	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, nullptr);
 }
@@ -296,7 +293,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetBackBuffer(UINT iBackBuffer, D3DBA
 		return hr;
 	}
 
-	*ppBackBuffer = new Direct3DSurface8(this, SurfaceInterface);
+	*ppBackBuffer = ProxyAddressLookupTable->FindAddress<Direct3DSurface8>(SurfaceInterface);
 
 	return D3D_OK;
 }
@@ -331,7 +328,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateTexture(UINT Width, UINT Height
 		{
 			Usage |= D3DUSAGE_RENDERTARGET;
 		}
-		else
+		else if (Usage != D3DUSAGE_DEPTHSTENCIL)
 		{
 			Usage |= D3DUSAGE_DYNAMIC;
 		}
@@ -447,20 +444,21 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateRenderTarget(UINT Width, UINT H
 
 	*ppSurface = nullptr;
 
-	DWORD QualityLevels = 1;
-	D3DDEVICE_CREATION_PARAMETERS CreationParams;
-	ProxyInterface->GetCreationParameters(&CreationParams);
+	DWORD QualityLevels = 0;
 
-	HRESULT hr = D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal, CreationParams.DeviceType, Format, FALSE, MultiSample, &QualityLevels);
-
-	if (FAILED(hr))
+	// Get multisample quality level
+	if (MultiSample != D3DMULTISAMPLE_NONE)
 	{
-		return D3DERR_INVALIDCALL;
+		D3DDEVICE_CREATION_PARAMETERS CreationParams;
+		ProxyInterface->GetCreationParameters(&CreationParams);
+
+		D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal, CreationParams.DeviceType, Format, FALSE, MultiSample, &QualityLevels);
+		QualityLevels = (QualityLevels != 0) ? QualityLevels - 1 : 0;
 	}
 
 	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, QualityLevels - 1, Lockable, &SurfaceInterface, nullptr);
+	HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, QualityLevels, Lockable, &SurfaceInterface, nullptr);
 
 	if (FAILED(hr))
 	{
@@ -480,20 +478,21 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateDepthStencilSurface(UINT Width,
 
 	*ppSurface = nullptr;
 
-	DWORD QualityLevels = 1;
-	D3DDEVICE_CREATION_PARAMETERS CreationParams;
-	ProxyInterface->GetCreationParameters(&CreationParams);
+	DWORD QualityLevels = 0;
 
-	HRESULT hr = D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal, CreationParams.DeviceType, Format, FALSE, MultiSample, &QualityLevels);
-
-	if (FAILED(hr))
+	// Get multisample quality level
+	if (MultiSample != D3DMULTISAMPLE_NONE)
 	{
-		return D3DERR_INVALIDCALL;
+		D3DDEVICE_CREATION_PARAMETERS CreationParams;
+		ProxyInterface->GetCreationParameters(&CreationParams);
+
+		D3D->GetProxyInterface()->CheckDeviceMultiSampleType(CreationParams.AdapterOrdinal, CreationParams.DeviceType, Format, FALSE, MultiSample, &QualityLevels);
+		QualityLevels = (QualityLevels != 0) ? QualityLevels - 1 : 0;
 	}
 
 	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, QualityLevels - 1, ZBufferDiscarding, &SurfaceInterface, nullptr);
+	HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, QualityLevels, ZBufferDiscarding, &SurfaceInterface, nullptr);
 
 	if (FAILED(hr))
 	{
@@ -584,13 +583,13 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CopyRects(Direct3DSurface8 *pSourceSu
 
 		if (SourceDesc.Pool == D3DPOOL_MANAGED || DestinationDesc.Pool != D3DPOOL_DEFAULT)
 		{
-			if (D3DXLoadSurfaceFromSurface != nullptr)
+			//if (D3DXLoadSurfaceFromSurface != nullptr)
+			//{
+			//	hr = D3DXLoadSurfaceFromSurface(pDestinationSurface->GetProxyInterface(), nullptr, &DestinationRect, pSourceSurface->GetProxyInterface(), nullptr, &SourceRect, D3DX_FILTER_NONE, 0);
+			//}
+			//else
 			{
-				hr = D3DXLoadSurfaceFromSurface(pDestinationSurface->GetProxyInterface(), nullptr, &DestinationRect, pSourceSurface->GetProxyInterface(), nullptr, &SourceRect, D3DX_FILTER_NONE, 0);
-			}
-			else
-			{
-				hr = E_FAIL;
+				hr = D3DERR_INVALIDCALL;
 			}
 		}
 		else if (SourceDesc.Pool == D3DPOOL_DEFAULT)
@@ -663,13 +662,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderTarget(Direct3DSurface8 *pRe
 			return hr;
 		}
 
-		if (CurrentRenderTarget != nullptr)
-		{
-			CurrentRenderTarget->Release();
-		}
-
-		CurrentRenderTarget = pRenderTarget;
-		CurrentRenderTarget->AddRef();
+		pCurrentRenderTarget = pRenderTarget->GetProxyInterface();
 	}
 
 	if (pNewZStencil != nullptr)
@@ -680,25 +673,10 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderTarget(Direct3DSurface8 *pRe
 		{
 			return hr;
 		}
-
-		if (CurrentDepthStencilSurface != nullptr)
-		{
-			CurrentDepthStencilSurface->Release();
-		}
-
-		CurrentDepthStencilSurface = pNewZStencil;
-		CurrentDepthStencilSurface->AddRef();
 	}
 	else
 	{
 		ProxyInterface->SetDepthStencilSurface(nullptr);
-
-		if (CurrentDepthStencilSurface != nullptr)
-		{
-			CurrentDepthStencilSurface->Release();
-		}
-
-		CurrentDepthStencilSurface = nullptr;
 	}
 
 	return D3D_OK;
@@ -710,12 +688,18 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetRenderTarget(Direct3DSurface8 **pp
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (CurrentRenderTarget != nullptr)
+	IDirect3DSurface9 *SurfaceInterface = nullptr;
+
+	const HRESULT hr = ProxyInterface->GetRenderTarget(0, &SurfaceInterface);
+
+	if (FAILED(hr))
 	{
-		CurrentRenderTarget->AddRef();
+		return hr;
 	}
 
-	*ppRenderTarget = CurrentRenderTarget;
+	pCurrentRenderTarget = SurfaceInterface;
+
+	*ppRenderTarget = ProxyAddressLookupTable->FindAddress<Direct3DSurface8>(SurfaceInterface);
 
 	return D3D_OK;
 }
@@ -726,12 +710,16 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetDepthStencilSurface(Direct3DSurfac
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (CurrentDepthStencilSurface != nullptr)
+	IDirect3DSurface9 *SurfaceInterface = nullptr;
+
+	const HRESULT hr = ProxyInterface->GetDepthStencilSurface(&SurfaceInterface);
+
+	if (FAILED(hr))
 	{
-		CurrentDepthStencilSurface->AddRef();
+		return hr;
 	}
 
-	*ppZStencilSurface = CurrentDepthStencilSurface;
+	*ppZStencilSurface = ProxyAddressLookupTable->FindAddress<Direct3DSurface8>(SurfaceInterface);
 
 	return D3D_OK;
 }
@@ -739,13 +727,20 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::BeginScene()
 {
 	HRESULT hr = ProxyInterface->BeginScene();
 
-	MainEngine->OnBeginScene();
+	if (FAILED(hr))
+	{
+		return hr;
+	}
 
-	return hr;
+	if (Engine)
+		Engine->OnBeginScene();
+
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::EndScene()
 {
-	MainEngine->OnEndScene();
+	if (Engine)
+		Engine->OnEndScene();
 
 	return ProxyInterface->EndScene();
 }
@@ -755,7 +750,6 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Clear(DWORD Count, const D3DRECT *pRe
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX *pMatrix)
 {
-	g_TransformState = State;
 	return ProxyInterface->SetTransform(State, pMatrix);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetTransform(D3DTRANSFORMSTATETYPE State, D3DMATRIX *pMatrix)
@@ -768,6 +762,16 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::MultiplyTransform(D3DTRANSFORMSTATETY
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetViewport(const D3DVIEWPORT8 *pViewport)
 {
+	if (pCurrentRenderTarget != nullptr)
+	{
+		D3DSURFACE_DESC Desc;
+
+		if (SUCCEEDED(pCurrentRenderTarget->GetDesc(&Desc)) && (pViewport->Height > Desc.Height || pViewport->Width > Desc.Width))
+		{
+			return D3DERR_INVALIDCALL;
+		}
+	}
+
 	return ProxyInterface->SetViewport(pViewport);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetViewport(D3DVIEWPORT8 *pViewport)
@@ -800,15 +804,22 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetLightEnable(DWORD Index, BOOL *pEn
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetClipPlane(DWORD Index, const float *pPlane)
 {
-	return ProxyInterface->SetClipPlane(Index, pPlane);
+	if (pPlane == nullptr || Index >= MAX_CLIP_PLANES) return D3DERR_INVALIDCALL;
+
+	memcpy(StoredClipPlanes[Index], pPlane, sizeof(StoredClipPlanes[0]));
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetClipPlane(DWORD Index, float *pPlane)
 {
-	return ProxyInterface->GetClipPlane(Index, pPlane);
+	if (pPlane == nullptr || Index >= MAX_CLIP_PLANES) return D3DERR_INVALIDCALL;
+
+	memcpy(pPlane, StoredClipPlanes[Index], sizeof(StoredClipPlanes[0]));
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
 	FLOAT Biased;
+	HRESULT hr;
 
 	switch (static_cast<DWORD>(State))
 	{
@@ -818,10 +829,18 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetRenderState(D3DRENDERSTATETYPE Sta
 		case D3DRS_PATCHSEGMENTS:
 			return D3DERR_INVALIDCALL;
 		case D3DRS_SOFTWAREVERTEXPROCESSING:
-			return ProxyInterface->SetSoftwareVertexProcessing(Value);
+			return D3D_OK;
+		case D3DRS_CLIPPLANEENABLE:
+			hr = ProxyInterface->SetRenderState(State, Value);
+			if (SUCCEEDED(hr))
+			{
+				ClipPlaneRenderState = Value;
+			}
+			return hr;
 		case D3DRS_ZBIAS:
 			Biased = static_cast<FLOAT>(Value) * -0.000005f;
 			Value = *reinterpret_cast<const DWORD *>(&Biased);
+			State = D3DRS_DEPTHBIAS;
 		default:
 			return ProxyInterface->SetRenderState(State, Value);
 	}
@@ -943,22 +962,19 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetTexture(DWORD Stage, Direct3DBaseT
 		{
 			case D3DRTYPE_TEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&TextureInterface));
-				*ppTexture = new Direct3DTexture8(this, TextureInterface);
+				*ppTexture = ProxyAddressLookupTable->FindAddress<Direct3DTexture8>(TextureInterface);
 				break;
 			case D3DRTYPE_VOLUMETEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&VolumeTextureInterface));
-				*ppTexture = new Direct3DVolumeTexture8(this, VolumeTextureInterface);
+				*ppTexture = ProxyAddressLookupTable->FindAddress<Direct3DVolumeTexture8>(VolumeTextureInterface);
 				break;
 			case D3DRTYPE_CUBETEXTURE:
 				BaseTextureInterface->QueryInterface(IID_PPV_ARGS(&CubeTextureInterface));
-				*ppTexture = new Direct3DCubeTexture8(this, CubeTextureInterface);
+				*ppTexture = ProxyAddressLookupTable->FindAddress<Direct3DCubeTexture8>(CubeTextureInterface);
 				break;
 			default:
-				BaseTextureInterface->Release();
 				return D3DERR_INVALIDCALL;
 		}
-
-		BaseTextureInterface->Release();
 	}
 
 	return D3D_OK;
@@ -976,6 +992,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetTexture(DWORD Stage, Direct3DBaseT
 	{
 		case D3DRTYPE_TEXTURE:
 			BaseTextureInterface = static_cast<Direct3DTexture8 *>(pTexture)->GetProxyInterface();
+			CurrentTexture = static_cast<Direct3DTexture8*>(pTexture)->GetProxyInterface();
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
 			BaseTextureInterface = static_cast<Direct3DVolumeTexture8 *>(pTexture)->GetProxyInterface();
@@ -986,8 +1003,6 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetTexture(DWORD Stage, Direct3DBaseT
 		default:
 			return D3DERR_INVALIDCALL;
 	}
-
-	g_pTexture9 = static_cast<Direct3DTexture8 *>(pTexture)->GetProxyInterface();
 
 	return ProxyInterface->SetTexture(Stage, BaseTextureInterface);
 }
@@ -1061,36 +1076,58 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetInfo(DWORD DevInfoID, void *pDevIn
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetPaletteEntries(UINT PaletteNumber, const PALETTEENTRY *pEntries)
 {
+	if (pEntries == nullptr)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 	return ProxyInterface->SetPaletteEntries(PaletteNumber, pEntries);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetPaletteEntries(UINT PaletteNumber, PALETTEENTRY *pEntries)
 {
+	if (pEntries == nullptr)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 	return ProxyInterface->GetPaletteEntries(PaletteNumber, pEntries);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetCurrentTexturePalette(UINT PaletteNumber)
 {
+	if (!PaletteFlag)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 	return ProxyInterface->SetCurrentTexturePalette(PaletteNumber);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetCurrentTexturePalette(UINT *pPaletteNumber)
 {
+	if (!PaletteFlag)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 	return ProxyInterface->GetCurrentTexturePalette(pPaletteNumber);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
+	ApplyClipPlanes();
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawIndexedPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT StartIndex, UINT PrimitiveCount)
 {
-	return MainEngine->OnDrawIndexedPrimitive(CurrentBaseVertexIndex, g_pTexture9, g_Stride, CurrentVertexShaderHandle, g_TransformState, PrimitiveType, MinIndex, NumVertices, StartIndex, PrimitiveCount);
+	ApplyClipPlanes();
 
-	//return ProxyInterface->DrawIndexedPrimitive(PrimitiveType, CurrentBaseVertexIndex, MinIndex, NumVertices, StartIndex, PrimitiveCount);
+	if (Engine)
+		return Engine->OnDrawIndexedPrimitive(PrimitiveType, CurrentBaseVertexIndex, MinIndex, NumVertices, StartIndex, PrimitiveCount, CurrentStride, CurrentTexture);
+
+	return ProxyInterface->DrawIndexedPrimitive(PrimitiveType, CurrentBaseVertexIndex, MinIndex, NumVertices, StartIndex, PrimitiveCount);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, const void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+	ApplyClipPlanes();
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinVertexIndex, UINT NumVertexIndices, UINT PrimitiveCount, const void *pIndexData, D3DFORMAT IndexDataFormat, const void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
+	ApplyClipPlanes();
 	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinVertexIndex, NumVertexIndices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, Direct3DVertexBuffer8 *pDestBuffer, DWORD Flags)
@@ -1104,7 +1141,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::ProcessVertices(UINT SrcStartIndex, U
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexShader(const DWORD *pDeclaration, const DWORD *pFunction, DWORD *pHandle, DWORD Usage)
 {
-	return E_NOTIMPL;
+	return ERROR_CALL_NOT_IMPLEMENTED;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetVertexShader(DWORD Handle)
 {
@@ -1190,7 +1227,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetVertexShaderDeclaration(DWORD Hand
 	UNREFERENCED_PARAMETER(pData);
 	UNREFERENCED_PARAMETER(pSizeOfData);
 
-	return E_NOTIMPL;
+	return D3DERR_INVALIDCALL;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetVertexShaderFunction(DWORD Handle, void *pData, DWORD *pSizeOfData)
 {
@@ -1216,8 +1253,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetStreamSource(UINT StreamNumber, Di
 		return D3DERR_INVALIDCALL;
 	}
 
-	g_Stride = Stride;
-	g_pStreamData9 = pStreamData->GetProxyInterface();
+	CurrentStride = Stride;
 
 	return ProxyInterface->SetStreamSource(StreamNumber, pStreamData->GetProxyInterface(), 0, Stride);
 }
@@ -1244,7 +1280,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetStreamSource(UINT StreamNumber, Di
 
 	if (VertexBufferInterface != nullptr)
 	{
-		*ppStreamData = new Direct3DVertexBuffer8(this, VertexBufferInterface);
+		*ppStreamData = ProxyAddressLookupTable->FindAddress<Direct3DVertexBuffer8>(VertexBufferInterface);
 	}
 
 	return D3D_OK;
@@ -1285,14 +1321,14 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetIndices(Direct3DIndexBuffer8 **ppI
 
 	if (IntexBufferInterface != nullptr)
 	{
-		*ppIndexData = new Direct3DIndexBuffer8(this, IntexBufferInterface);
+		*ppIndexData = ProxyAddressLookupTable->FindAddress<Direct3DIndexBuffer8>(IntexBufferInterface);
 	}
 
 	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreatePixelShader(const DWORD *pFunction, DWORD *pHandle)
 {
-	return E_NOTIMPL;
+	return ERROR_CALL_NOT_IMPLEMENTED;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::SetPixelShader(DWORD Handle)
 {
@@ -1357,4 +1393,17 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::DrawTriPatch(UINT Handle, const float
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::DeletePatch(UINT Handle)
 {
 	return ProxyInterface->DeletePatch(Handle);
+}
+
+void Direct3DDevice8::ApplyClipPlanes()
+{
+	DWORD index = 0;
+	for (const auto clipPlane : StoredClipPlanes)
+	{
+		if ((ClipPlaneRenderState & (1 << index)) != 0)
+		{
+			ProxyInterface->SetClipPlane(index, clipPlane);
+		}
+		index++;
+	}
 }

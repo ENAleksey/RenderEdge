@@ -1,58 +1,44 @@
-
 #include "Blp.h"
+
+#include "Log.h"
 #include "Jpeg.h"
 #include "Utils.h"
-#include <d3dx9.h>
 
 
-BOOL LoadBLP(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Texture, BUFFER& Buffer)
+BOOL LoadBLP(IDirect3DDevice9* pDevice, IDirect3DTexture9*& pTexture, BUFFER& Buffer)
 {
 	BLP_HEADER Header;
 	//D3DSURFACE_DESC SurfaceInfo;
 
-	if (Direct3DDevice == NULL)
-	{
-		Message("Unable to retrieve the Direct3D device!", "Unable to load texture!");
-		return FALSE;
-	}
-
 	std::memcpy(reinterpret_cast<CHAR*>(&Header), &Buffer[0], sizeof(BLP_HEADER));
 	if(Header.MagicNumber != '1PLB')
 	{
-		Message("The file is not a BLP texture!", "Unable to load texture!");
+		LOG(ERROR) << "LoadBLP -> Unable to load texture: The file is not a BLP texture!";
 		return FALSE;
 	}
-
 
 	switch(Header.Compression)
 	{
 		case 0:
 		{
-			if(!LoadCompressed(Direct3DDevice, Texture, Header, Buffer)) return FALSE;
+			if(!LoadCompressed(pDevice, pTexture, Header, Buffer)) return FALSE;
 			break;
 		}
-
 		case 1:
 		{
-			if(!LoadUncompressed(Direct3DDevice, Texture, Header, Buffer)) return FALSE;
+			if(!LoadUncompressed(pDevice, pTexture, Header, Buffer)) return FALSE;
 			break;
 		}
-
 		default:
 		{
-			Message("Unknown compression method!", "Unable to load texture!");
+			LOG(ERROR) << "LoadBLP -> Unable to load texture: Unknown compression method!";
 			return FALSE;
 		}
 	}
-	if (!Texture)
-	{
-		MessageBoxA(NULL, "Error!", "Texture::CreateTextureFromMPQ", MB_OK | MB_ICONERROR);
-		return FALSE;
-	}
 	
-	if(FAILED(D3DXFilterTexture(Texture, NULL, D3DX_DEFAULT, D3DX_DEFAULT)))
+	if(FAILED(D3DXFilterTexture(pTexture, NULL, D3DX_DEFAULT, D3DX_DEFAULT)))
 	{
-		Message("Texture filtering failed!", "Unable to load texture!");
+		LOG(ERROR) << "LoadBLP -> Unable to load texture: Texture filtering failed!";
 		return FALSE;
 	}
 	
@@ -63,7 +49,7 @@ BOOL LoadBLP(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Texture, BUFF
 //+-----------------------------------------------------------------------------
 //| Loads a compressed blp texture
 //+-----------------------------------------------------------------------------
-BOOL LoadCompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Texture, BLP_HEADER& Header, BUFFER& Buffer)
+BOOL LoadCompressed(IDirect3DDevice9* pDevice, IDirect3DTexture9*& pTexture, BLP_HEADER& Header, BUFFER& Buffer)
 {
 	INT X;
 	INT Y;
@@ -77,10 +63,9 @@ BOOL LoadCompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Textur
 
 	std::memcpy(reinterpret_cast<CHAR*>(&JpegHeaderSize), &Buffer[sizeof(BLP_HEADER)], sizeof(DWORD));
 
-	if(FAILED(D3DXCreateTexture(Direct3DDevice, Header.Width, Header.Height, D3DX_DEFAULT, 0,
-								D3DFMT_UNKNOWN, D3DPOOL_MANAGED, &Texture)))
+	if(FAILED(D3DXCreateTexture(pDevice, Header.Width, Header.Height, D3DX_DEFAULT, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED, &pTexture)))
 	{
-		Message("Texture creation failed!", "Unable to load texture!");
+		LOG(ERROR) << "LoadCompressed -> Unable to load texture: Texture creation failed!";
 		return FALSE;
 	}
 
@@ -91,13 +76,13 @@ BOOL LoadCompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Textur
 
 	if(!Jpeg.Read(TempBuffer2, TempBuffer))
 	{
-		Message("BLP reading failed!", "Unable to load texture!");
+		LOG(ERROR) << "LoadCompressed -> Unable to load texture: BLP reading failed!";
 		return FALSE;
 	}
 
-	if(FAILED(Texture->LockRect(0, &LockedRect, NULL, D3DLOCK_DISCARD)))
+	if(FAILED(pTexture->LockRect(0, &LockedRect, NULL, D3DLOCK_DISCARD)))
 	{
-		Message("Texture locking failed!", "Unable to load texture!");
+		LOG(ERROR) << "LoadCompressed -> Unable to load texture: Texture locking failed!";
 		return FALSE;
 	}
 
@@ -118,7 +103,7 @@ BOOL LoadCompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Textur
 		Index += LockedRect.Pitch - (Header.Width * 4);
 	}
 
-	Texture->UnlockRect(0);
+	pTexture->UnlockRect(0);
 
 	return TRUE;
 }
@@ -127,7 +112,7 @@ BOOL LoadCompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Textur
 //+-----------------------------------------------------------------------------
 //| Loads an uncompressed blp texture
 //+-----------------------------------------------------------------------------
-BOOL LoadUncompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Texture, BLP_HEADER& Header, BUFFER& Buffer)
+BOOL LoadUncompressed(IDirect3DDevice9* pDevice, IDirect3DTexture9*& pTexture, BLP_HEADER& Header, BUFFER& Buffer)
 {
 	INT i;
 	INT X;
@@ -144,10 +129,9 @@ BOOL LoadUncompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Text
 
 	std::memcpy(reinterpret_cast<CHAR*>(Palette), &Buffer[sizeof(BLP_HEADER)], (PALETTE_SIZE * 4));
 
-	if(FAILED(D3DXCreateTexture(Direct3DDevice, Header.Width, Header.Height, D3DX_DEFAULT, 0,
-								D3DFMT_UNKNOWN, D3DPOOL_MANAGED, &Texture)))
+	if(FAILED(D3DXCreateTexture(pDevice, Header.Width, Header.Height, D3DX_DEFAULT, 0, D3DFMT_UNKNOWN, D3DPOOL_MANAGED, &pTexture)))
 	{
-		Message("Texture creation failed!", "Unable to load texture!");
+		LOG(ERROR) << "LoadUncompressed -> Unable to load texture: Texture creation failed!";
 		return FALSE;
 	}
 
@@ -177,7 +161,6 @@ BOOL LoadUncompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Text
 
 			break;
 		}
-
 		case 5:
 		{
 			BLP_PIXEL* SourcePixel;
@@ -195,17 +178,16 @@ BOOL LoadUncompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Text
 
 			break;
 		}
-
 		default:
 		{
-			Message("Unable to load texture, unknown picture type!", 0);
+			LOG(ERROR) << "LoadUncompressed -> Unable to load texture: Unable to load texture, unknown picture type!";
 			return FALSE;
 		}
 	}
 
-	if(FAILED(Texture->LockRect(0, &LockedRect, NULL, 0)))
+	if(FAILED(pTexture->LockRect(0, &LockedRect, NULL, 0)))
 	{
-		Message("Unable to load texture, texture locking failed!", 0);
+		LOG(ERROR) << "LoadUncompressed -> Unable to load texture: Texture locking failed!";
 		return FALSE;
 	}
 
@@ -226,7 +208,7 @@ BOOL LoadUncompressed(IDirect3DDevice9* Direct3DDevice, IDirect3DTexture9*& Text
 		Index += LockedRect.Pitch - (Header.Width * 4);
 	}
 
-	Texture->UnlockRect(0);
+	pTexture->UnlockRect(0);
 
 	return TRUE;
 }

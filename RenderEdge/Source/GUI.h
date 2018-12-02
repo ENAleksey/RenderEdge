@@ -3,11 +3,11 @@
 #include <vector>
 #include <string>
 
-#include "Texture.h"
+#include "Texture2D.h"
 #include "Font.h"
-#include "int_t.h"
+#include "Utils.h"
 
-enum class Anchor : uint32
+enum class EAnchor : uint32
 {
 	TopLeft,
 	Top,
@@ -20,7 +20,7 @@ enum class Anchor : uint32
 	BottomRight
 };
 
-enum class TextAlignment : uint32
+enum class ETextAlignment : uint32
 {
 	Left,
 	Center,
@@ -35,7 +35,7 @@ public:
 	int32 m_iOffsetX, m_iOffsetY;
 	uint32 m_iHeight, m_iWidth;
 
-	Texture* m_pTexture;
+	Texture2D* m_pTexture;
 	float m_fAngle;
 	uint32 m_iColor;
 	float m_fDepth;
@@ -45,16 +45,16 @@ public:
 
 	std::string m_Text;
 	bool m_bWrap;
-	TextAlignment m_TextAlignment;
-	Font* m_pFont;
+	ETextAlignment m_TextAlignment;
+	CFont* m_pFont;
 
-	Anchor m_Anchor;
+	EAnchor m_Anchor;
 	ICtrl* m_pParentCtrl;
 	int32 m_iRelativeX, m_iRelativeY;
 
 	void UpdateAnchor();
-	void SetTexture(Texture* texture);
-	void SetFont(Font* pFont);
+	void SetTexture(Texture2D* texture);
+	void SetFont(CFont* pFont);
 	int32 GetX();
 	int32 GetY();
 
@@ -63,38 +63,37 @@ public:
 };
 
 
-class GUI
+class CGUI
 {
 public:
-	GUI(IDirect3DDevice9* pDevice);
-	~GUI();
+	CGUI(IDirect3DDevice9* pDevice);
+	~CGUI();
 
 	int32 GetCtrlFromPoint(int32 x, int32 y);
 	int32 GetCtrlFromMousePoint();
 	ICtrl* GetCtrlFromID(uint32 id);
 
-	void New(uint32 id, int32 offsetX, int32 offsetY, uint32 width, uint32 height);
+	void NewCtrl(uint32 id, int32 offsetX, int32 offsetY, uint32 width, uint32 height);
+	void DeleteCtrl(uint32 id);
 
-	void SetTexture(uint32 id, const std::string& filename);
-	void SetFont(uint32 id, const std::string& name, uint32 size);
-	void SetText(uint32 id, const std::string& text, bool bWrap);
-	void SetTextAlignment(uint32 id, TextAlignment alignment);
-	void SetColor(uint32 id, uint32 argb);
-	void SetPosition(uint32 id, int32 offsetX, int32 offsetY);
-	void SetAnchor(uint32 id, int32 parentId, Anchor anchor);
-	void SetAngle(uint32 id, float val);
-	void SetDepth(uint32 id, float fDepth);
-	void SetZOrder(uint32 id, int32 iZOrder);
-	void SetSize(uint32 id, int32 width, int32 height);
+	void SetCtrlTexture(uint32 id, const std::string& filename);
+	void SetCtrlFont(uint32 id, const std::string& name, uint32 size);
+	void SetCtrlText(uint32 id, const std::string& text, bool bWrap);
+	void SetCtrlTextAlignment(uint32 id, ETextAlignment alignment);
+	void SetCtrlColor(uint32 id, uint32 argb);
+	void SetCtrlPosition(uint32 id, int32 offsetX, int32 offsetY);
+	void SetCtrlAnchor(uint32 id, int32 parentId, EAnchor anchor);
+	void SetCtrlAngle(uint32 id, float val);
+	void SetCtrlDepth(uint32 id, float fDepth);
+	void SetCtrlZOrder(uint32 id, int32 iZOrder);
+	void SetCtrlSize(uint32 id, int32 width, int32 height);
 
-	uint32 GetHeight(uint32 id);
-	uint32 GetWidth(uint32 id);
-	bool IsText(uint32 id);
-
-	void Show(uint32 id, bool isShow);
-	void Delete(uint32 id);
-	void Draw();
-
+	uint32 GetCtrlHeight(uint32 id);
+	uint32 GetCtrlWidth(uint32 id);
+	bool CtrlIsText(uint32 id);
+	void ShowCtrl(uint32 id, bool isShow);
+	
+	void Render();
 	void Release();
 	void OnLostDevice();
 	void OnResetDevice();
@@ -108,4 +107,4 @@ private:
 	ID3DXSprite*      m_pSprite;
 };
 
-extern GUI* MainGUI;
+extern CGUI* CustomUI;

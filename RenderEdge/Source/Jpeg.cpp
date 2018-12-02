@@ -31,11 +31,11 @@ JPEG::~JPEG()
 //+-----------------------------------------------------------------------------
 //| Writes JPEG data
 //+-----------------------------------------------------------------------------
-bool JPEG::Write(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32 Width, int32 Height, int32 Quality)
+bool JPEG::Write(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int Width, int Height, int Quality)
 {
-	int32 Stride;
-	int32 RealSize;
-	int32 DummySize;
+	int Stride;
+	int RealSize;
+	int DummySize;
 	BUFFER TempBuffer;
 	JSAMPROW Pointer[1];
 	jpeg_compress_struct Info;
@@ -62,13 +62,13 @@ bool JPEG::Write(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32 Width, 
 	Stride = Width * 4;
 	while(Info.next_scanline < Info.image_height)
 	{
-		Pointer[0] = reinterpret_cast<JSAMPROW>(const_cast<uint8*>(SourceBuffer.GetData(Info.next_scanline * Stride)));
+		Pointer[0] = reinterpret_cast<JSAMPROW>(const_cast<unsigned char*>(SourceBuffer.GetData(Info.next_scanline * Stride)));
 		jpeg_write_scanlines(&Info, Pointer, 1);
 	}
 
 	jpeg_finish_compress(&Info);
 
-	RealSize = DummySize - static_cast<int32>(Info.dest->free_in_buffer);
+	RealSize = DummySize - static_cast<int>(Info.dest->free_in_buffer);
 	TargetBuffer.Resize(RealSize);
 
 	memcpy(TargetBuffer.GetData(), TempBuffer.GetData(), RealSize);
@@ -82,11 +82,11 @@ bool JPEG::Write(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32 Width, 
 //+-----------------------------------------------------------------------------
 //| Reads JPEG data
 //+-----------------------------------------------------------------------------
-bool JPEG::Read(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32* Width, int32* Height)
+bool JPEG::Read(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int* Width, int* Height)
 {
-	int32 i;
-	int32 Stride;
-	int32 Offset;
+	int i;
+	int Stride;
+	int Offset;
 	char Opaque;
 	JSAMPARRAY Pointer;
 	jpeg_decompress_struct Info;
@@ -95,7 +95,7 @@ bool JPEG::Read(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32* Width, 
 	Info.err = jpeg_std_error(&ErrorManager);
 
 	jpeg_create_decompress(&Info);
-	SetMemorySource(&Info, const_cast<uint8*>(SourceBuffer.GetData()), SourceBuffer.GetSize());
+	SetMemorySource(&Info, const_cast<unsigned char*>(SourceBuffer.GetData()), SourceBuffer.GetSize());
 	jpeg_read_header(&Info, true);
 	jpeg_start_decompress(&Info);
 
@@ -144,7 +144,7 @@ bool JPEG::Read(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32* Width, 
 //+-----------------------------------------------------------------------------
 //| Sets the memory source
 //+-----------------------------------------------------------------------------
-void JPEG::SetMemorySource(jpeg_decompress_struct* Info, uint8* Buffer, size_t Size)
+void JPEG::SetMemorySource(jpeg_decompress_struct* Info, unsigned char* Buffer, size_t Size)
 {
 	JPEG_SOURCE_MANAGER* SourceManager;
 
@@ -167,7 +167,7 @@ void JPEG::SetMemorySource(jpeg_decompress_struct* Info, uint8* Buffer, size_t S
 //+-----------------------------------------------------------------------------
 //| Sets the memory destination
 //+-----------------------------------------------------------------------------
-void JPEG::SetMemoryDestination(jpeg_compress_struct* Info, uint8* Buffer, size_t Size)
+void JPEG::SetMemoryDestination(jpeg_compress_struct* Info, unsigned char* Buffer, size_t Size)
 {
 	JPEG_DESTINATION_MANAGER* DestinationManager;
 

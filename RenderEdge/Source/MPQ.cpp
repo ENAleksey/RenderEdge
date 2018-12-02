@@ -1,41 +1,39 @@
 #include "MPQ.h"
 
+#include "Log.h"
 #include "Engine.h"
 #include "Storm.h"
 #include "Utils.h"
-#include "Log.h"
 #include "Buffer.h"
 
 namespace MPQ
 {
-	uint32_t MpqLoadPriority = 15;
-	void OpenArchive(const std::string& fileName, HANDLE mpqHandle)
+	uint32 MpqLoadPriority = 15;
+	bool OpenArchive(const std::string& fileName, HANDLE* mpqHandle)
 	{
-		if (utils::FileExists(fileName.c_str()))
+		if (!Storm::OpenArchive(fileName.c_str(), MpqLoadPriority, 0, mpqHandle))
 		{
-			Storm::OpenArchive(fileName.c_str(), MpqLoadPriority, 0, &mpqHandle);
-			MpqLoadPriority++;
+			LOG(ERROR) << "Failed to load MPQ: " << fileName;
 
-			LOG(logDEBUG) << "Loaded MPQ: " << fileName;
+			return false;
 		}
-		else
-		{
-			LOG(logERROR) << "Failed to load MPQ: " << fileName;
-			Message("Failed to load MPQ:\n" + fileName);
-		}
+
+		LOG(DEBUG) << "Loaded MPQ: " << fileName;
+
+		MpqLoadPriority++;
+
+		return true;
 	}
 
-	bool LoadFile(HANDLE MpqHandle, const std::string& fileName, BUFFER& Buffer)
+	bool LoadFile(HANDLE MpqHandle, const std::string& fileName, BUFFER& Buffer, bool bFromMap)
 	{
-		DWORD Size;
 		HANDLE FileHandle;
-		DWORD BytesRead = 0;
 
-		if (MpqHandle == NULL)
+		if (MpqHandle == nullptr)
 		{
 			if (!Storm::OpenFile(fileName.c_str(), &FileHandle))
 			{
-				LOG(logERROR) << "Storm::OpenFile -> File not found: " << fileName;
+				LOG(ERROR) << "Storm::OpenFile -> File not found: " << fileName;
 				return false;
 			}
 		}
@@ -43,19 +41,35 @@ namespace MPQ
 		{
 			if (!Storm::OpenFileEx(MpqHandle, fileName.c_str(), 0, &FileHandle))
 			{
-				LOG(logERROR) << "Storm::OpenFileEx -> File not found: " << fileName;
+				LOG(ERROR) << "Storm::OpenFileEx -> File not found: " << fileName;
 				return false;
 			}
 		}
 
-		Size = Storm::GetFileSize(FileHandle, NULL);
+		if (bFromMap)
+		{
+			HANDLE fileArchive;
+			char archiveName[256];
+
+			Storm::GetFileArchive(FileHandle, &fileArchive);
+			Storm::GetArchiveName(fileArchive, archiveName, sizeof(archiveName));
+
+			if (utils::GetFileExtension(archiveName) != ".w3x")
+			{
+				Storm::CloseFile(FileHandle);
+				return false;
+			}
+		}
+
+		DWORD Size = Storm::GetFileSize(FileHandle, nullptr);
 
 		Buffer.Resize(Size);
 
-		if (!Storm::ReadFile(FileHandle, Buffer.GetData(), Buffer.GetSize(), &BytesRead, NULL))
+		DWORD BytesRead = 0;
+		if (!Storm::ReadFile(FileHandle, Buffer.GetData(), Buffer.GetSize(), &BytesRead, 0))
 		{
 			Storm::CloseFile(FileHandle);
-			LOG(logERROR) << "Storm::ReadFile " << fileName;
+			LOG(ERROR) << "Storm::ReadFile " << fileName;
 			return false;
 		}
 
@@ -63,11 +77,11 @@ namespace MPQ
 
 		if (BytesRead != Size)
 		{
-			LOG(logERROR) << "Storm::LoadFile -> Not all bytes were read in " << fileName;
+			LOG(ERROR) << "Storm::LoadFile -> Not all bytes were read in " << fileName;
 			return false;
 		}
 
-		LOG(logDEBUG) << "Loaded file: " << fileName;
+		LOG(DEBUG) << "Loaded file: " << fileName;
 
 		return true;
 	}

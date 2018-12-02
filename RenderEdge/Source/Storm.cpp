@@ -1,7 +1,5 @@
-#include "storm.h"
+#include "Storm.h"
 #include "fp_call.h"
-#include <stdio.h>
-#include "Utils.h"
 
 namespace Storm {
 
@@ -32,56 +30,54 @@ namespace Storm {
 	uintptr_t SFile_OpenFileAsArchive;
 	uintptr_t SFile_GetLocale;
 	uintptr_t SFile_GetFileCompressedSize;
-	uintptr_t SFile_MemAlloc;
 
-	bool isValide = false;
-	HMODULE g_storm_dll;
+	bool bValid = false;
+	HMODULE hStormDll;
 
-	bool valid()
+	bool IsValid()
 	{
-		return isValide;
+		return bValid;
 	}
 
-	uintptr_t get_proc(uint32_t ord)
+	uintptr_t GetProc(uint32_t ord)
 	{
-		uintptr_t ptr = (uintptr_t)::GetProcAddress(g_storm_dll, (const char*)ord);
-		if (!ptr)
-			Message("Couldn't find " + std::to_string(ord) + "Storm.dll");
-		return ptr;
+		return (uintptr_t)GetProcAddress(hStormDll, (const char*)ord);
 	}
 
 	bool load()
 	{
-		if (!g_storm_dll) return false;
+		if (!hStormDll)
+			return false;
 
-		SFile_CloseArchive            = get_proc(252);		 if (!(SFile_CloseArchive))		       return false;
-		SFile_CloseFile               = get_proc(253);		 if (!(SFile_CloseFile))		       return false;
-		SFile_EnableDirectAccess      = get_proc(263);		 if (!(SFile_EnableDirectAccess))	   return false;
-		SFile_GetFileArchive          = get_proc(264);		 if (!(SFile_GetFileArchive))		   return false;
-		SFile_GetFileSize             = get_proc(265);		 if (!(SFile_GetFileSize))			   return false;
-		SFile_OpenArchive             = get_proc(266);		 if (!(SFile_OpenArchive))			   return false;
-		SFile_OpenFile                = get_proc(267);		 if (!(SFile_OpenFile))			       return false;
-		SFile_OpenFileEx              = get_proc(268);		 if (!(SFile_OpenFileEx))			   return false;
-		SFile_ReadFile                = get_proc(269);		 if (!(SFile_ReadFile))				   return false;
-		SFile_SetBasePath             = get_proc(270);		 if (!(SFile_SetBasePath))			   return false;
-		SFile_SetFilePointer          = get_proc(271);		 if (!(SFile_SetFilePointer))		   return false;
-		SFile_SetLocale               = get_proc(272);	     if (!(SFile_SetLocale))			   return false;
-		SFile_GetBasePath             = get_proc(273);		 if (!(SFile_GetBasePath))			   return false;
-		SFile_GetArchiveName          = get_proc(275);		 if (!(SFile_GetArchiveName))	       return false;
-		SFile_GetFileName             = get_proc(276);		 if (!(SFile_GetFileName))			   return false;
-		SFile_GetArchiveInfo          = get_proc(277);		 if (!(SFile_GetArchiveInfo))		   return false;
-		SFile_LoadFile                = get_proc(279);		 if (!(SFile_LoadFile))				   return false;
-		SFile_UnloadFile              = get_proc(280);		 if (!(SFile_UnloadFile))			   return false;
-		SFile_LoadFileEx              = get_proc(281);		 if (!(SFile_LoadFileEx))			   return false;
-		SFile_ReadFileEx              = get_proc(287);		 if (!(SFile_ReadFileEx))			   return false;
-		SFile_FileExists              = get_proc(288);		 if (!(SFile_FileExists))              return false;
-		SFile_FileExistsEx            = get_proc(289);		 if (!(SFile_FileExistsEx))            return false;
-		SFile_ReadFileEx2             = get_proc(291);		 if (!(SFile_ReadFileEx2))             return false;
-		SFile_LoadFileEx2             = get_proc(292);		 if (!(SFile_LoadFileEx2))             return false;
-		SFile_OpenFileAsArchive       = get_proc(293);		 if (!(SFile_OpenFileAsArchive))       return false;
-		SFile_GetLocale               = get_proc(294);		 if (!(SFile_GetLocale))               return false;
-		SFile_GetFileCompressedSize   = get_proc(296);		 if (!(SFile_GetFileCompressedSize))   return false;
-		SFile_MemAlloc                = get_proc(401);		 if (!(SFile_MemAlloc))                return false;
+		SFile_CloseArchive				= GetProc(252);		 if (!(SFile_CloseArchive))				return false;
+		SFile_CloseFile					= GetProc(253);		 if (!(SFile_CloseFile))				return false;
+		SFile_EnableDirectAccess		= GetProc(263);		 if (!(SFile_EnableDirectAccess))		return false;
+		SFile_GetFileArchive			= GetProc(264);		 if (!(SFile_GetFileArchive))			return false;
+		SFile_GetFileSize				= GetProc(265);		 if (!(SFile_GetFileSize))				return false;
+		SFile_OpenArchive				= GetProc(266);		 if (!(SFile_OpenArchive))				return false;
+		SFile_OpenFile					= GetProc(267);		 if (!(SFile_OpenFile))					return false;
+		SFile_OpenFileEx				= GetProc(268);		 if (!(SFile_OpenFileEx))				return false;
+		SFile_ReadFile					= GetProc(269);		 if (!(SFile_ReadFile))					return false;
+		SFile_SetBasePath				= GetProc(270);		 if (!(SFile_SetBasePath))				return false;
+		SFile_SetFilePointer			= GetProc(271);		 if (!(SFile_SetFilePointer))			return false;
+		SFile_SetLocale					= GetProc(272);	     if (!(SFile_SetLocale))				return false;
+		SFile_GetBasePath				= GetProc(273);		 if (!(SFile_GetBasePath))				return false;
+		SFile_GetArchiveName			= GetProc(275);		 if (!(SFile_GetArchiveName))			return false;
+		SFile_GetFileName				= GetProc(276);		 if (!(SFile_GetFileName))				return false;
+		SFile_GetArchiveInfo			= GetProc(277);		 if (!(SFile_GetArchiveInfo))			return false;
+		SFile_LoadFile					= GetProc(279);		 if (!(SFile_LoadFile))					return false;
+		SFile_UnloadFile				= GetProc(280);		 if (!(SFile_UnloadFile))				return false;
+		SFile_LoadFileEx				= GetProc(281);		 if (!(SFile_LoadFileEx))				return false;
+		SFile_ReadFileEx				= GetProc(287);		 if (!(SFile_ReadFileEx))				return false;
+		SFile_FileExists				= GetProc(288);		 if (!(SFile_FileExists))				return false;
+		SFile_FileExistsEx				= GetProc(289);		 if (!(SFile_FileExistsEx))				return false;
+		SFile_ReadFileEx2				= GetProc(291);		 if (!(SFile_ReadFileEx2))				return false;
+		SFile_LoadFileEx2				= GetProc(292);		 if (!(SFile_LoadFileEx2))				return false;
+		SFile_OpenFileAsArchive			= GetProc(293);		 if (!(SFile_OpenFileAsArchive))		return false;
+		SFile_GetLocale					= GetProc(294);		 if (!(SFile_GetLocale))				return false;
+		SFile_GetFileCompressedSize		= GetProc(296);		 if (!(SFile_GetFileCompressedSize))	return false;
+
+		bValid = true;
 
 		return true;
 	}
@@ -89,164 +85,158 @@ namespace Storm {
 	
 	BOOL CloseArchive(HANDLE hArchive)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_CloseArchive, hArchive);
 	}
 
 	BOOL CloseFile(HANDLE hFile)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_CloseFile, hFile);
 	}
 
 	BOOL EnableDirectAccess(HANDLE hFile)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_EnableDirectAccess, hFile);
 	}
 
-	BOOL GetFileArchive(HANDLE hFile, HANDLE hArchive)
+	BOOL GetFileArchive(HANDLE hFile, HANDLE* hArchive)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_GetFileArchive, hFile, hArchive);
 	}
 
 	DWORD GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_GetFileSize, hFile, lpFileSizeHigh);
 	}
 
-	BOOL OpenArchive(const char *archiveName, DWORD dwPriority, DWORD dwFlags, HANDLE *pArchiveHandle)
+	BOOL OpenArchive(const std::string& archiveName, DWORD dwPriority, DWORD dwFlags, HANDLE *pArchiveHandle)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_OpenArchive, archiveName, dwPriority, dwFlags, pArchiveHandle);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_OpenArchive, archiveName.c_str(), dwPriority, dwFlags, pArchiveHandle);
 	}
 
-	BOOL OpenFile(const char *fileName, HANDLE *pFileHandle)
+	BOOL OpenFile(const std::string& fileName, HANDLE *pFileHandle)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_OpenFile, fileName, pFileHandle);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_OpenFile, fileName.c_str(), pFileHandle);
 	}
 
-	BOOL OpenFileEx(HANDLE hArchive, const char *fileName, DWORD searchScope, HANDLE *pFileHandle)
+	BOOL OpenFileEx(HANDLE hArchive, const std::string& fileName, DWORD searchScope, HANDLE *pFileHandle)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_OpenFileEx, hArchive, fileName, searchScope, pFileHandle);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_OpenFileEx, hArchive, fileName.c_str(), searchScope, pFileHandle);
 	}
 
 	BOOL ReadFile(HANDLE hFile, void *pBuffer, DWORD nNumberOfBytesToRead, DWORD *pNumberOfBytesRead, LONG lpDistanceToMoveHigh)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_ReadFile, hFile, pBuffer, nNumberOfBytesToRead, pNumberOfBytesRead, lpDistanceToMoveHigh);
 	}
 
-	BOOL SetBasePath(const char *pathName)
+	BOOL SetBasePath(const std::string& pathName)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_SetBasePath, pathName);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_SetBasePath, pathName.c_str());
 	}
 
 	LONG SetFilePointer(HANDLE hFile, LONG filePos, LONG *filePosHigh, DWORD dwMethod)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_SetFilePointer, hFile, filePos, filePosHigh, dwMethod);
 	}
 
 	LCID SetLocale(LCID lcNewLocale)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_SetLocale, lcNewLocale);
 	}
 
 	BOOL GetBasePath(char *pBasePathBuffer, size_t bufferSize)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_GetBasePath, pBasePathBuffer, bufferSize);
 	}
 
 	BOOL GetArchiveName(HANDLE hArchive, char *pNameBuffer, size_t bufferSize)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_GetArchiveName, hArchive, pNameBuffer, bufferSize);
 	}
 
 	BOOL GetFileName(HANDLE hFile, char *pNameBuffer, size_t bufferSize)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_GetFileName, hFile, pNameBuffer, bufferSize);
 	}
 
-	BOOL GetArchiveInfo(HANDLE hArchive, int32 *a2, int32 *a3)
+	BOOL GetArchiveInfo(HANDLE hArchive, int *a2, int *a3)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_GetArchiveInfo, hArchive, a2, a3);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_GetArchiveInfo, hArchive, a2, a3);//
 	}
 
-	BOOL LoadFile(const char *filePath, void **ppBuffer, size_t *pSize, size_t extraSizeToAlocate, LPOVERLAPPED pOverlapped)
+	BOOL LoadFile(const std::string& filePath, void **ppBuffer, size_t *pSize, size_t extraSizeToAlocate, LPOVERLAPPED pOverlapped)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_LoadFile, filePath, ppBuffer, pSize, extraSizeToAlocate, pOverlapped);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_LoadFile, filePath.c_str(), ppBuffer, pSize, extraSizeToAlocate, pOverlapped);
 	}
 
 	BOOL UnloadFile(void *pBuffer)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_UnloadFile, pBuffer);
 	}
 
-	BOOL LoadFileEx(HANDLE hArchive, const char *filePath, char **ppBuffer, size_t *pBufferSize, size_t extraSize, DWORD searchScope, LPOVERLAPPED pOverlapped)
+	BOOL LoadFileEx(HANDLE hArchive, const std::string& filePath, char **ppBuffer, size_t *pBufferSize, size_t extraSize, DWORD searchScope, LPOVERLAPPED pOverlapped)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_LoadFileEx, hArchive, filePath, ppBuffer, pBufferSize, extraSize, searchScope, pOverlapped);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_LoadFileEx, hArchive, filePath.c_str(), ppBuffer, pBufferSize, extraSize, searchScope, pOverlapped);
 	}
 
-	BOOL FileExists(const char *filePath)
+	BOOL FileExists(const std::string& filePath)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_FileExists, filePath);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_FileExists, filePath.c_str());
 	}
 
-	BOOL FileExistsEx(HANDLE hArchive, const char *filePath, DWORD searchScope)
+	BOOL FileExistsEx(HANDLE hArchive, const std::string& filePath, DWORD searchScope)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_FileExistsEx, hArchive, filePath, searchScope);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_FileExistsEx, hArchive, filePath.c_str(), searchScope);
 	}
 
-	BOOL LoadFileEx2(HANDLE hArchive, const char *filePath, char **ppBuffer, size_t *pBufferSize, size_t extraSize, DWORD searchScope, LPOVERLAPPED pOverlapped, int32 a8)
+	BOOL LoadFileEx2(HANDLE hArchive, const std::string& filePath, char **ppBuffer, size_t *pBufferSize, size_t extraSize, DWORD searchScope, LPOVERLAPPED pOverlapped, int a8)
 	{
-		if (!valid()) return false;
-		return std_call<BOOL>(SFile_LoadFileEx2, hArchive, filePath, ppBuffer, pBufferSize, extraSize, searchScope, pOverlapped, a8);
+		if (!IsValid()) return false;
+		return std_call<BOOL>(SFile_LoadFileEx2, hArchive, filePath.c_str(), ppBuffer, pBufferSize, extraSize, searchScope, pOverlapped, a8);
 	}
 
 	LCID GetLocale()
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_GetLocale);
 	}
 
 	DWORD GetFileCompressedSize(HANDLE hFile, DWORD *pSizeHigh)
 	{
-		if (!valid()) return false;
+		if (!IsValid()) return false;
 		return std_call<BOOL>(SFile_GetFileCompressedSize, hFile, pSizeHigh);
 	}
 
-	int32 MemAlloc(int32 a1, int32 a2, int32 a3, int32 a4)
+
+	bool Init()
 	{
-		if (!valid()) return false;
-		return std_call<int32>(SFile_MemAlloc, a1, a2, a3, a4);
-	}
+		hStormDll = GetModuleHandleW(L"Storm.dll");
+		if (!hStormDll)
+			return false;
 
+		if (!load())
+			return false;
 
-	bool InitStormAPI()
-	{
-		g_storm_dll = GetModuleHandleA("Storm.dll");
-
-		if (load())
-		{
-			isValide = true;
-			return true;
-		}
-		return false;
+		return true;
 	}
 }

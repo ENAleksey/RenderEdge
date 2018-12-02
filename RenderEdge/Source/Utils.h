@@ -1,44 +1,61 @@
 #pragma once
 
+#include <d3d9.h>
+#include <d3dx9.h>
 #include <string>
-#include <Windows.h>
 
-#ifndef SAFE_RELEASE
-#define SAFE_RELEASE(p)			{ if(p) { (p)->Release(); (p) = nullptr; } }
+
+#ifndef V
+#define V(x) { hr = (x); }
+#endif
+#ifndef V_RETURN
+#define V_RETURN(x) { hr = (x); if( FAILED(hr) ) { return hr; } }
 #endif
 
 #ifndef SAFE_DELETE
-#define SAFE_DELETE(p)			{ if(p) { delete (p); (p) = nullptr; } }
+#define SAFE_DELETE(p) { if (p) { delete (p); (p) = nullptr; } }
+#endif
+#ifndef SAFE_DELETE_ARRAY
+#define SAFE_DELETE_ARRAY(p) { if (p) { delete[] (p); (p) = nullptr; } }
+#endif
+#ifndef SAFE_RELEASE
+#define SAFE_RELEASE(p) { if (p) { (p)->Release(); (p) = nullptr; } }
 #endif
 
-#ifndef V_RETURN
-#define V_RETURN(hr)			{ if(FAILED(hr)) { MessageBoxW(nullptr, L"Fail!", L"Error!", MB_OK); } }
-#endif
 
-#ifndef SAFE_ARRAY_DELETE
-#define SAFE_ARRAY_DELETE(x)	{ if (x) { delete [] x; x = nullptr; } }
-#endif
-
-
-template <typename Type> void SetValueFromMemory(uintptr_t addres, Type value)
-{
-	DWORD dwOldProtect;
-	if (VirtualProtect((LPVOID*)addres, sizeof(Type), PAGE_EXECUTE_READWRITE, &dwOldProtect))
-		*(Type*)(LPVOID*)addres = value;
-}
+using int8 = signed char;
+using int16 = short;
+using int32 = int;
+using int64 = long long;
+using uint8 = unsigned char;
+using uint16 = unsigned short;
+using uint32 = unsigned int;
+using uint64 = unsigned long long;
 
 
-void Message(const std::string& msg, const std::string& title);
-void Message(const std::string& msg);
+void Message(const std::string & msg, const std::string & title);
+void Message(const std::string & msg);
+void ExitMessage(const std::string & msg);
 
 namespace utils
 {
-	std::string get_ext(const std::string& st);
-
+	std::string GetModulePath(HMODULE hModule);
+	std::string GetFileExtension(const std::string& st);
+	bool ParseFloat(const std::string& Stream, const std::string& Match, float& Value);
 	const char* from_utf8(char* s);
 	bool IsHexColor(const std::string& str);
 	std::string ExtractFilePath(const std::string& fileName);
 	bool FileExists(const std::string& name);
+}
+
+namespace math
+{
+	float Square(float x);
+	float Lerp(float a, float b, float x);
+	float Clamp(float x, float a, float b);
+	float ToLinearSpace(float x);
+	int32 FloorToInt(float x);
+	bool IsEqual(float a, float b, float e = FLT_EPSILON);
 }
 
 namespace registry

@@ -6,13 +6,45 @@
 #include "d3d8to9.hpp"
 
 #include "Engine.h"
+#include "Log.h"
 
 Direct3DDevice8* g_pDevice8 = nullptr;
-D3DPRESENT_PARAMETERS8* g_pPresentParameters;
+D3DPRESENT_PARAMETERS8 g_pPresentParameters;
 
 void ResetDevice()
 {
-	g_pDevice8->Reset(g_pPresentParameters);
+	/*if (!g_bVsyncEnabled)
+	{
+		g_pPresentParameters.BackBufferWidth = 800;
+		g_pPresentParameters.BackBufferHeight = 600;
+		g_pPresentParameters.Windowed = true;
+	}
+	else
+	{
+		g_pPresentParameters.BackBufferWidth = 1600;
+		g_pPresentParameters.BackBufferHeight = 900;
+		g_pPresentParameters.Windowed = false;
+	}*/
+
+	//if (!g_bVsyncEnabled)
+	//{
+		//g_pPresentParameters.FullScreen_PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+		//g_pPresentParameters.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
+		//g_pPresentParameters.Windowed = true;
+	//}
+
+	g_pDevice8->Reset(&g_pPresentParameters);
+
+	//if (!g_bVsyncEnabled)
+	//{
+	//	SetWindowLong(g_pPresentParameters.hDeviceWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+	//	//SetWindowPos(g_pPresentParameters.hDeviceWindow, HWND_TOP, 0, 0, 800, 600, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_SHOWWINDOW);
+	//}
+	//else
+	//{
+	//	SetWindowLong(g_pPresentParameters.hDeviceWindow, GWL_STYLE, WS_POPUPWINDOW);
+	//	//SetWindowPos(g_pPresentParameters.hDeviceWindow, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+	//}
 }
 
 static const D3DFORMAT AdapterFormats[] = {
@@ -20,14 +52,40 @@ static const D3DFORMAT AdapterFormats[] = {
 	D3DFMT_X8R8G8B8,
 	D3DFMT_R5G6B5,
 	D3DFMT_X1R5G5B5,
-	D3DFMT_A1R5G5B5,
-	D3DFMT_A2R10G10B10
+	D3DFMT_A1R5G5B5
 };
 
 // IDirect3D8
 Direct3D8::Direct3D8(IDirect3D9 *ProxyInterface) :
 	ProxyInterface(ProxyInterface)
 {
+	D3DDISPLAYMODE pMode;
+
+	CurrentAdapterCount = ProxyInterface->GetAdapterCount();
+
+	if (CurrentAdapterCount > MaxAdapters)
+	{
+		CurrentAdapterCount = MaxAdapters;
+	}
+
+	for (UINT Adapter = 0; Adapter < CurrentAdapterCount; Adapter++)
+	{
+		for (D3DFORMAT Format : AdapterFormats)
+		{
+			const UINT ModeCount = ProxyInterface->GetAdapterModeCount(Adapter, Format);
+
+			for (UINT Mode = 0; Mode < ModeCount; Mode++)
+			{
+				ProxyInterface->EnumAdapterModes(Adapter, Format, Mode, &pMode);
+				CurrentAdapterModes[Adapter].push_back(pMode);
+				CurrentAdapterModeCount[Adapter]++;
+			}
+		}
+	}
+}
+Direct3D8::~Direct3D8()
+{
+
 }
 
 HRESULT STDMETHODCALLTYPE Direct3D8::QueryInterface(REFIID riid, void **ppvObj)
@@ -71,7 +129,7 @@ HRESULT STDMETHODCALLTYPE Direct3D8::RegisterSoftwareDevice(void *pInitializeFun
 }
 UINT STDMETHODCALLTYPE Direct3D8::GetAdapterCount()
 {
-	return ProxyInterface->GetAdapterCount();
+	return CurrentAdapterCount;
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER8 *pIdentifier)
 {
@@ -104,42 +162,21 @@ HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterIdentifier(UINT Adapter, DWORD Fl
 }
 UINT STDMETHODCALLTYPE Direct3D8::GetAdapterModeCount(UINT Adapter)
 {
-	UINT ModeCount = 0;
-
-	for (D3DFORMAT Format : AdapterFormats)
-	{
-		ModeCount += ProxyInterface->GetAdapterModeCount(Adapter, Format);
-	}
-
-	return ModeCount;
+	return CurrentAdapterModeCount[Adapter];
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::EnumAdapterModes(UINT Adapter, UINT Mode, D3DDISPLAYMODE *pMode)
 {
-	if (pMode == nullptr)
+	if (pMode == nullptr || !(Adapter < CurrentAdapterCount && Mode < CurrentAdapterModeCount[Adapter]))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	UINT ModeOffset = 0;
+	pMode->Format = CurrentAdapterModes[Adapter].at(Mode).Format;
+	pMode->Height = CurrentAdapterModes[Adapter].at(Mode).Height;
+	pMode->RefreshRate = CurrentAdapterModes[Adapter].at(Mode).RefreshRate;
+	pMode->Width = CurrentAdapterModes[Adapter].at(Mode).Width;
 
-	for (D3DFORMAT Format : AdapterFormats)
-	{
-		const UINT ModeCount = ProxyInterface->GetAdapterModeCount(Adapter, Format);
-
-		if (ModeCount == 0)
-		{
-			continue;
-		}
-
-		if (Mode < ModeOffset + ModeCount)
-		{
-			return ProxyInterface->EnumAdapterModes(Adapter, Format, Mode - ModeOffset, pMode);
-		}
-
-		ModeOffset += ModeCount;
-	}
-
-	return D3DERR_INVALIDCALL;
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMode)
 {
@@ -151,6 +188,10 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CheckDeviceType(UINT Adapter, D3DDEVTYPE Ch
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CheckDeviceFormat(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, DWORD Usage, D3DRESOURCETYPE RType, D3DFORMAT CheckFormat)
 {
+	if (CheckFormat == D3DFMT_UYVY || CheckFormat == D3DFMT_YUY2 || CheckFormat == MAKEFOURCC('Y', 'V', '1', '2') || CheckFormat == MAKEFOURCC('N', 'V', '1', '2'))
+	{
+		return D3DERR_NOTAVAILABLE;
+	}
 	return ProxyInterface->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CheckDeviceMultiSampleType(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SurfaceFormat, BOOL Windowed, D3DMULTISAMPLE_TYPE MultiSampleType)
@@ -196,12 +237,12 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 
 	D3DPRESENT_PARAMETERS PresentParams;
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
-	g_pPresentParameters = pPresentationParameters;
+	g_pPresentParameters = *pPresentationParameters;
 
 	if (!g_bVsyncEnabled)
 	{
 		PresentParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-		PresentParams.FullScreen_RefreshRateInHz = 0;
+		PresentParams.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 	}
 
 	// Set FOURCC_INTZ format
@@ -212,53 +253,42 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 		PresentParams.AutoDepthStencilFormat = FOURCC_INTZ;
 	}*/
 
+	// Get multisample quality level
+	if (PresentParams.MultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		DWORD QualityLevels = 0;
+		if (ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+			DeviceType, PresentParams.BackBufferFormat, PresentParams.Windowed,
+			PresentParams.MultiSampleType, &QualityLevels) == S_OK &&
+			ProxyInterface->CheckDeviceMultiSampleType(Adapter,
+				DeviceType, PresentParams.AutoDepthStencilFormat, PresentParams.Windowed,
+				PresentParams.MultiSampleType, &QualityLevels) == S_OK)
+		{
+			PresentParams.MultiSampleQuality = (QualityLevels != 0) ? QualityLevels - 1 : 0;
+		}
+	}
 
 	IDirect3DDevice9 *DeviceInterface = nullptr;
 
-	const HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, &DeviceInterface);
+	HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, &DeviceInterface);
 
 	if (FAILED(hr))
 	{
+		LOG(WARNING) << "'IDirect3D9::CreateDevice' failed with error code " << std::hex << hr << std::dec << "!";
 		return hr;
 	}
 
-	Direct3DDevice8 *const DeviceProxyObject = new Direct3DDevice8(this, DeviceInterface, (PresentParams.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
+	*ppReturnedDeviceInterface = new Direct3DDevice8(this, DeviceInterface, (PresentParams.Flags & D3DPRESENTFLAG_DISCARD_DEPTHSTENCIL) != 0);
+	g_pDevice8 = *ppReturnedDeviceInterface;
 
-	// Set default render target
-	IDirect3DSurface9 *RenderTargetInterface = nullptr;
-	IDirect3DSurface9 *DepthStencilInterface = nullptr;
-
-	DeviceInterface->GetRenderTarget(0, &RenderTargetInterface);
-	DeviceInterface->GetDepthStencilSurface(&DepthStencilInterface);
-
-	Direct3DSurface8 *RenderTargetProxyObject = nullptr;
-	Direct3DSurface8 *DepthStencilProxyObject = nullptr;
-
-	if (RenderTargetInterface != nullptr)
+	// Create Engine
+	if (Engine == nullptr)
 	{
-		RenderTargetProxyObject = new Direct3DSurface8(DeviceProxyObject, RenderTargetInterface);
+		Engine = new CEngine(DeviceInterface);
 	}
-	if (DepthStencilInterface != nullptr)
-	{
-		DepthStencilProxyObject = new Direct3DSurface8(DeviceProxyObject, DepthStencilInterface);
-	}
-
-	DeviceProxyObject->SetRenderTarget(RenderTargetProxyObject, DepthStencilProxyObject);
-
-	if (RenderTargetProxyObject != nullptr)
-	{
-		RenderTargetProxyObject->Release();
-	}
-	if (DepthStencilProxyObject != nullptr)
-	{
-		DepthStencilProxyObject->Release();
-	}
-
-	*ppReturnedDeviceInterface = DeviceProxyObject;
-	g_pDevice8 = DeviceProxyObject;
-
-	if (MainEngine == nullptr)
-		MainEngine = new Engine(DeviceInterface);
+		
+	// Set default vertex declaration
+	DeviceInterface->SetFVF(D3DFVF_XYZ);
 
 	return D3D_OK;
 }

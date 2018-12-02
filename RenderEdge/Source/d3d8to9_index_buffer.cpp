@@ -5,16 +5,18 @@
 
 #include "d3d8to9.hpp"
 
+IBLock g_IndexData(0, 0, 0);
+IBLock m_Lock = IBLock(0, 0, 0);
+
 // IDirect3DIndexBuffer8
 Direct3DIndexBuffer8::Direct3DIndexBuffer8(Direct3DDevice8 *Device, IDirect3DIndexBuffer9 *ProxyInterface) :
 	Device(Device), ProxyInterface(ProxyInterface)
 {
-	Device->AddRef();
+	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);
 }
 Direct3DIndexBuffer8::~Direct3DIndexBuffer8()
 {
-	ProxyInterface->Release();
-	Device->Release();
+	
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::QueryInterface(REFIID riid, void **ppvObj)
@@ -39,18 +41,11 @@ HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::QueryInterface(REFIID riid, void
 }
 ULONG STDMETHODCALLTYPE Direct3DIndexBuffer8::AddRef()
 {
-	return InterlockedIncrement(&RefCount);
+	return ProxyInterface->AddRef();
 }
 ULONG STDMETHODCALLTYPE Direct3DIndexBuffer8::Release()
 {
-	const ULONG LastRefCount = InterlockedDecrement(&RefCount);
-
-	if (LastRefCount == 0)
-	{
-		delete this;
-	}
-
-	return LastRefCount;
+	return ProxyInterface->Release();
 }
 
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::GetDevice(Direct3DDevice8 **ppDevice)
@@ -97,10 +92,34 @@ D3DRESOURCETYPE STDMETHODCALLTYPE Direct3DIndexBuffer8::GetType()
 
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::Lock(UINT OffsetToLock, UINT SizeToLock, BYTE **ppbData, DWORD Flags)
 {
-	return ProxyInterface->Lock(OffsetToLock, SizeToLock, reinterpret_cast<void **>(ppbData), Flags);
+	if ((Flags & D3DLOCK_DISCARD) != 0)
+	{
+		D3DINDEXBUFFER_DESC desc;
+		ProxyInterface->GetDesc(&desc);
+
+		if ((desc.Usage & D3DUSAGE_DYNAMIC) == 0 || (desc.Usage & D3DUSAGE_WRITEONLY) == 0)
+		{
+			Flags ^= D3DLOCK_DISCARD;
+		}
+	}
+
+	HRESULT hr = ProxyInterface->Lock(OffsetToLock, SizeToLock, reinterpret_cast<void**>(ppbData), Flags);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	m_Lock = (Flags & D3DLOCK_READONLY) ? IBLock(0, 0, 0) : IBLock(OffsetToLock, SizeToLock, *ppbData);
+
+	return hr;
 }
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::Unlock()
 {
+	g_IndexData = m_Lock;
+	if (m_Lock.SizeLocked)
+		memcpy(g_IndexData.pbLocked, m_Lock.pbLocked, m_Lock.SizeLocked);
+
 	return ProxyInterface->Unlock();
 }
 HRESULT STDMETHODCALLTYPE Direct3DIndexBuffer8::GetDesc(D3DINDEXBUFFER_DESC *pDesc)

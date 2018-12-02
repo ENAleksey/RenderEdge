@@ -5,7 +5,7 @@
 
 #include <freetype/ftsnames.h>
 
-FreeTypeFont::FreeTypeFont(const std::string& fileName, int32 size, int32 style)
+CFreeTypeFont::CFreeTypeFont(const std::string& fileName, int32 size, int32 style)
 {
 	HFONT font = CreateFontA(size, 0, 0, 0, style & FONT_STYLE_BOLD ? FW_BOLD : FW_NORMAL, style & FONT_STYLE_ITALIC, 0, 0,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH, fileName.c_str());
@@ -38,14 +38,14 @@ FreeTypeFont::FreeTypeFont(const std::string& fileName, int32 size, int32 style)
 	*/
 }
 
-FreeTypeFont::~FreeTypeFont()
+CFreeTypeFont::~CFreeTypeFont()
 {
 	FT_Done_Face(pFace);
 	FT_Done_FreeType(pFreeType);
 }
 
 
-void FreeTypeFont::GetMetrics(TextMetrics &metric)
+void CFreeTypeFont::GetMetrics(TextMetrics &metric)
 {
 	metric.ascent = pFace->size->metrics.ascender >> 6;
 	metric.descent = (-pFace->size->metrics.descender) >> 6;
@@ -54,7 +54,7 @@ void FreeTypeFont::GetMetrics(TextMetrics &metric)
 	metric.externalleading = (pFace->size->metrics.height >> 6) - metric.height;
 }
 
-void FreeTypeFont::GetCharABC(int32 first, int32 count, CharABC *abc)
+void CFreeTypeFont::GetCharABC(int32 first, int32 count, CharABC *abc)
 {
 	for (int32 n = 0; n < count; ++n)
 	{
@@ -65,7 +65,7 @@ void FreeTypeFont::GetCharABC(int32 first, int32 count, CharABC *abc)
 	}
 }
 
-void FreeTypeFont::CalcTextureSizeForRange(int32 first, int32 count, int32 &width, int32 &height)
+void CFreeTypeFont::CalcTextureSizeForRange(int32 first, int32 count, int32 &width, int32 &height)
 {
 	TextMetrics tm;
 	GetMetrics(tm);
@@ -78,7 +78,7 @@ void FreeTypeFont::CalcTextureSizeForRange(int32 first, int32 count, int32 &widt
 	delete[] abcwd;
 }
 
-void FreeTypeFont::CalcTextureSizeForRangeImpl(const TextMetrics &tm, CharABC *abc, int32 first, int32 count, int32 &width, int32 &height)
+void CFreeTypeFont::CalcTextureSizeForRangeImpl(const TextMetrics &tm, CharABC *abc, int32 first, int32 count, int32 &width, int32 &height)
 {
 	const int32 margin = 1; // 1px margin around glyph
 	const int32 extra_width = margin * 2;
@@ -138,7 +138,7 @@ void FreeTypeFont::CalcTextureSizeForRangeImpl(const TextMetrics &tm, CharABC *a
 }
 
 
-bool FreeTypeFont::RenderGlyphsToSurface(IDirect3DDevice9* pDevice, int32 first, int32 count, Texture* texture, int32 &width, int32 &height, int32 &margin, CharInfo *info)
+bool CFreeTypeFont::RenderGlyphsToSurface(IDirect3DDevice9* pDevice, int32 first, int32 count, Texture2D* texture, int32 &width, int32 &height, int32 &margin, CharInfo *info)
 {
 	margin = 1; // 1px margin around glyph
 	const int32 extra_width = margin * 2;
@@ -212,14 +212,14 @@ bool FreeTypeFont::RenderGlyphsToSurface(IDirect3DDevice9* pDevice, int32 first,
 	}*/
 	
 
-	texture->FromArray(pDevice, texture_image, width, height);
+	texture->CreateFromArray(pDevice, texture_image, width, height, D3DFMT_A8);
 
 	delete[] texture_image;
 
 	return true;
 }
 
-FT_ULong FreeTypeFont::CharToIndex(char chr)
+FT_ULong CFreeTypeFont::CharToIndex(char chr)
 {
 	char output[4] = { 0, 0, 0, 0 };
 

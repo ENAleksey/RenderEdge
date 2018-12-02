@@ -4,36 +4,36 @@
 #include "MPQ.h"
 
 
-FontManager* MainFontManager;
+CFontManager* FontManager;
 
-bool FontManager::LoadFontFromMPQ(const std::string& fileName)
+bool CFontManager::LoadFontFromMPQ(const std::string& fileName)
 {
 	BUFFER Buffer;
-	if (utils::get_ext(fileName) == "ttf")
+	if (utils::GetFileExtension(fileName) == "ttf")
 	{
 		if (!MPQ::LoadFile(nullptr, fileName, Buffer))
 		{
-			Message("Failed to load font file:\n" + fileName);
+			LOG(ERROR) << "CFontManager::LoadFontFromMPQ -> Failed to load font file: " << fileName;
 			return false;
 		}
 	}
 	else
 	{
-		Message("Failed to load font file:\nUnsupported extension");
+		LOG(ERROR) << "CFontManager::LoadFontFromMPQ -> Unsupported extension: " << fileName;
 		return false;
 	}
 
 	DWORD nFonts;
 	if (AddFontMemResourceEx(Buffer.GetData(), Buffer.GetSize(), 0, &nFonts) == 0)
 	{
-		Message("Font add fails");
+		LOG(ERROR) << "CFontManager::LoadFontFromMPQ -> AddFontMemResourceEx failed: " << fileName;
 		return false;
 	}
 
 	return true;
 }
 
-FontManager::FontManager(IDirect3DDevice9* pDevice)
+CFontManager::CFontManager(IDirect3DDevice9* pDevice)
 {
 	m_pDevice = pDevice;
 
@@ -46,14 +46,21 @@ FontManager::FontManager(IDirect3DDevice9* pDevice)
 	m_pDefaultFont = GetFont(defFontName, defFontSize);
 }
 
-bool FontManager::CreateFontFromFile(const std::string& fontName, uint32 size)
+CFontManager::~CFontManager()
 {
-	Font* pFont = new Font;
+	for (uint32 i = 0; i < FontContainer.GetSize(); i++)
+		SAFE_DELETE(FontContainer[i]);
+
+	FontContainer.Clear();
+}
+
+bool CFontManager::CreateFontFromFile(const std::string& fontName, uint32 size)
+{
+	CFont* pFont = new CFont;
 	int32 Index = FontContainer.GetIndex(fontName + std::to_string(size));
 
 	if (Index != INVALID_INDEX)
 	{
-		LOG(logDEBUG) << "FontManager::CreateFontFromFile -> File already exists!";
 		return false;
 	}
 
@@ -62,7 +69,7 @@ bool FontManager::CreateFontFromFile(const std::string& fontName, uint32 size)
 
 	if (!FontContainer.Add(fontName + std::to_string(size), pFont))
 	{
-		LOG(logERROR) << "FontManager::CreateFontFromFile -> Unable to add font!";
+		LOG(ERROR) << "FontManager::CreateFontFromFile -> Unable to add font!";
 		delete pFont; pFont = nullptr;
 		return false;
 	}
@@ -70,14 +77,13 @@ bool FontManager::CreateFontFromFile(const std::string& fontName, uint32 size)
 	return true;
 }
 
-bool FontManager::CreateFontFromMPQ(HANDLE archive, const std::string& fontName, uint32 size)
+bool CFontManager::CreateFontFromMPQ(HANDLE archive, const std::string& fontName, uint32 size)
 {
-	Font* pFont = new Font;
+	CFont* pFont = new CFont;
 	int32 Index = FontContainer.GetIndex(fontName + std::to_string(size));
 
 	if (Index != INVALID_INDEX)
 	{
-		LOG(logDEBUG) << "FontManager::CreateFontFromMPQ -> File already exists!";
 		return false;
 	}
 
@@ -86,7 +92,7 @@ bool FontManager::CreateFontFromMPQ(HANDLE archive, const std::string& fontName,
 
 	if (!FontContainer.Add(fontName + std::to_string(size), pFont))
 	{
-		LOG(logERROR) << "FontManager::CreateFontFromMPQ -> Unable to add font!";
+		LOG(ERROR) << "FontManager::CreateFontFromMPQ -> Unable to add font!";
 		delete pFont; pFont = nullptr;
 		return false;
 	}
@@ -94,7 +100,7 @@ bool FontManager::CreateFontFromMPQ(HANDLE archive, const std::string& fontName,
 	return true;
 }
 
-Font* FontManager::GetFont(const std::string& fontName, uint32 size)
+CFont* CFontManager::GetFont(const std::string& fontName, uint32 size)
 {
 	int32 Index = FontContainer.GetIndex(fontName + std::to_string(size));
 
@@ -103,12 +109,12 @@ Font* FontManager::GetFont(const std::string& fontName, uint32 size)
 	return FontContainer[Index];
 }
 
-Font* FontManager::GetDefaultFont()
+CFont* CFontManager::GetDefaultFont()
 {
 	return m_pDefaultFont;
 }
 
-bool FontManager::Remove(const std::string& fontName, uint32 size)
+bool CFontManager::Remove(const std::string& fontName, uint32 size)
 {
 	int32 Index = FontContainer.GetIndex(fontName + std::to_string(size));
 
@@ -119,7 +125,7 @@ bool FontManager::Remove(const std::string& fontName, uint32 size)
 	return true;
 }
 
-bool FontManager::Remove(int32 id)
+bool CFontManager::Remove(int32 id)
 {
 	if (!FontContainer.ValidIndex(id)) return false;
 

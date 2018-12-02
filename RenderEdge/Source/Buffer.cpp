@@ -1,13 +1,5 @@
-//+-----------------------------------------------------------------------------
-//| Included files
-//+-----------------------------------------------------------------------------
 #include "Buffer.h"
 
-
-
-//+-----------------------------------------------------------------------------
-//| Constructor
-//+-----------------------------------------------------------------------------
 BUFFER::BUFFER()
 	: buffer_()
 {
@@ -18,49 +10,33 @@ BUFFER::BUFFER(const std::string& CopyString)
 {
 }
 
-
-//+-----------------------------------------------------------------------------
-//| Destructor
-//+-----------------------------------------------------------------------------
 BUFFER::~BUFFER()
 {
 }
 
 
-//+-----------------------------------------------------------------------------
-//| Resizes the buffer
-//+-----------------------------------------------------------------------------
 void BUFFER::Resize(size_t NewSize)
 {
 	buffer_.resize(NewSize);
 }
 
 
-//+-----------------------------------------------------------------------------
-//| Returns the data from the buffer
-//+-----------------------------------------------------------------------------
-uint8* BUFFER::GetData(size_t Index)
+unsigned char* BUFFER::GetData(size_t Index)
 {
-	return const_cast<uint8*>((const uint8*)buffer_.data()) + Index;
+	return const_cast<unsigned char*>((const unsigned char*)buffer_.data()) + Index;
 }
 
-const uint8* BUFFER::GetData(size_t Index) const
+const unsigned char* BUFFER::GetData(size_t Index) const
 {
-	return (const uint8*)buffer_.data() + Index;
+	return (const unsigned char*)buffer_.data() + Index;
 }
 
-//+-----------------------------------------------------------------------------
-//| Returns the buffer size
-//+-----------------------------------------------------------------------------
 size_t BUFFER::GetSize() const
 {
 	return buffer_.size();
 }
 
 
-//+-----------------------------------------------------------------------------
-//| Reference a byte in the buffer
-//+-----------------------------------------------------------------------------
 char& BUFFER::operator [](size_t Index)
 {
 	return buffer_[Index];
@@ -70,4 +46,3 @@ std::string const& BUFFER::Buf() const
 {
 	return buffer_;
 };
-

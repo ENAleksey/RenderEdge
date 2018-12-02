@@ -10,7 +10,6 @@
 //| Included files
 //+-----------------------------------------------------------------------------
 #include "Buffer.h"
-#include "int_t.h"
 
 
 //+-----------------------------------------------------------------------------
@@ -40,7 +39,7 @@ struct JPEG_SOURCE_MANAGER
 	}
 
 	jpeg_source_mgr Manager;
-	uint8* SourceBuffer;
+	unsigned char* SourceBuffer;
 	size_t SourceBufferSize;
 	JOCTET* Buffer;
 };
@@ -59,7 +58,7 @@ struct JPEG_DESTINATION_MANAGER
 	}
 
 	jpeg_destination_mgr Manager;
-	uint8* DestinationBuffer;
+	unsigned char* DestinationBuffer;
 	size_t DestinationBufferSize;
 	JOCTET* Buffer;
 };
@@ -74,12 +73,12 @@ public:
 	JPEG();
 	~JPEG();
 
-	bool Write(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32 Width, int32 Height, int32 Quality);
-	bool Read(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int32* Width = NULL, int32* Height = NULL);
+	bool Write(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int Width, int Height, int Quality);
+	bool Read(const BUFFER& SourceBuffer, BUFFER& TargetBuffer, int* Width = NULL, int* Height = NULL);
 
 protected:
-	static void SetMemorySource(jpeg_decompress_struct* Info, uint8* Buffer, size_t Size);
-	static void SetMemoryDestination(jpeg_compress_struct* Info, uint8* Buffer, size_t Size);
+	static void SetMemorySource(jpeg_decompress_struct* Info, unsigned char* Buffer, size_t Size);
+	static void SetMemoryDestination(jpeg_compress_struct* Info, unsigned char* Buffer, size_t Size);
 
 	static void SourceInit(jpeg_decompress_struct* Info);
 	static boolean SourceFill(jpeg_decompress_struct* Info);

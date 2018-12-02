@@ -1,64 +1,52 @@
 #include "Font.h"
 #include "Engine.h"
 
-BaseFont::BaseFont(IDirect3DDevice9* pDevice, const std::string& fontName, uint32 size, int32 style) : pFirst(32), pCount(224)
+CBaseFont::CBaseFont(IDirect3DDevice9* pDevice, const std::string& fontName, uint32 size, int32 style) : pFirst(32), pCount(224)
 {
-	FreeTypeFont* pFont = new FreeTypeFont(fontName, size, style);
-	pTexture = new Texture;
+	CFreeTypeFont* pFont = new CFreeTypeFont(fontName, size, style);
+	pTexture = new Texture2D();
 
 	pFont->RenderGlyphsToSurface(pDevice, pFirst, pCount, pTexture, pSurfaceWidth, pSurfaceHeight, pMargin, pInfo);
 	pFont->GetMetrics(pMetrics);
 
-	delete pFont;
-	pFont = nullptr;
+	SAFE_DELETE(pFont)
 }
 
-BaseFont::~BaseFont()
+CBaseFont::~CBaseFont()
 {
+	SAFE_DELETE(pTexture);
 }
 
 
-
-Font::Font()
+CFont::CFont()
 {
+
 }
 
-Font::~Font()
+CFont::~CFont()
 {
-	if (normalFont != nullptr)
-	{
-		delete normalFont; normalFont = nullptr;
-	}
-	if (boldFont != nullptr)
-	{
-		delete boldFont; boldFont = nullptr;
-	}
-	if (italicFont != nullptr)
-	{
-		delete italicFont; italicFont = nullptr;
-	}
-	if (boldItalicFont != nullptr)
-	{
-		delete boldItalicFont; boldItalicFont = nullptr;
-	}
+	SAFE_DELETE(normalFont);
+	SAFE_DELETE(boldFont);
+	SAFE_DELETE(italicFont);
+	SAFE_DELETE(boldItalicFont);
 }
 
-bool Font::CreateFromFile(IDirect3DDevice9* pDevice, const std::string& fontName, uint32 size)
+bool CFont::CreateFromFile(IDirect3DDevice9* pDevice, const std::string& fontName, uint32 size)
 {
-	normalFont = new BaseFont(pDevice, fontName, size, 0);
-	boldFont = new BaseFont(pDevice, fontName, size, FONT_STYLE_BOLD);
-	italicFont = new BaseFont(pDevice, fontName, size, FONT_STYLE_ITALIC);
-	boldItalicFont = new BaseFont(pDevice, fontName, size, FONT_STYLE_BOLD | FONT_STYLE_ITALIC);
+	normalFont = new CBaseFont(pDevice, fontName, size, 0);
+	boldFont = new CBaseFont(pDevice, fontName, size, FONT_STYLE_BOLD);
+	italicFont = new CBaseFont(pDevice, fontName, size, FONT_STYLE_ITALIC);
+	boldItalicFont = new CBaseFont(pDevice, fontName, size, FONT_STYLE_BOLD | FONT_STYLE_ITALIC);
 
 	return true;
 }
 
-bool Font::CreateFromFileInMPQ(IDirect3DDevice9* pDevice, HANDLE archive, const std::string& fontName, uint32 size)
+bool CFont::CreateFromFileInMPQ(IDirect3DDevice9* pDevice, HANDLE archive, const std::string& fontName, uint32 size)
 {
 	return false;
 }
 
-BaseFont* Font::GetNormal()
+CBaseFont* CFont::GetNormal()
 {
 	if (normalFont == nullptr)
 		return nullptr;
@@ -66,7 +54,7 @@ BaseFont* Font::GetNormal()
 	return normalFont;
 }
 
-BaseFont* Font::GetBold()
+CBaseFont* CFont::GetBold()
 {
 	if (boldFont == nullptr)
 		return GetNormal();
@@ -74,7 +62,7 @@ BaseFont* Font::GetBold()
 	return boldFont;
 }
 
-BaseFont* Font::GetItalic()
+CBaseFont* CFont::GetItalic()
 {
 	if (italicFont == nullptr)
 		return GetNormal();
@@ -82,7 +70,7 @@ BaseFont* Font::GetItalic()
 	return italicFont;
 }
 
-BaseFont* Font::GetBoldItalic()
+CBaseFont* CFont::GetBoldItalic()
 {
 	if (boldItalicFont == nullptr)
 		return GetNormal();
