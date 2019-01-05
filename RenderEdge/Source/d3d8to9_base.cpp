@@ -247,8 +247,5 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 	// Set default vertex declaration
 	DeviceInterface->SetFVF(D3DFVF_XYZ);
 
-	// Update V-Sync State
-	ForceResetDevice8();
-
 	return D3D_OK;
 }

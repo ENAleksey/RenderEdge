@@ -31,7 +31,6 @@ class CEngine
 {
 private:
 	IDirect3DDevice9* m_pDevice;
-	bool bMapInit;
 
 public:
 	CEngine(IDirect3DDevice9* pDevice);
@@ -52,7 +51,14 @@ public:
 	void InitTemporaryResources();
 	void ReleaseTemporaryResources();
 	void ReloadShaders();
+
+	void UpdateFreeCamera();
+	void UpdateUserInterface();
+	void UpdateMaskedObjectColor();
+	void UpdateBuildingsShadowsColor();
+	void UpdateMapBoundsColor();
 	
+	void UpdateScreenMode();
 	void UpdateWidescreenFix(float aspectRatio);
 	void GetBackBufferSize();
 	void GetSupportedDepthFormat();
