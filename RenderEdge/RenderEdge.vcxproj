@@ -71,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Bin\Release\RenderEdge.ini" />
+    <None Include="Resources\RenderEdge.ini" />
     <None Include="Shaders\ACES.fxh" />
     <None Include="Shaders\Bloom.fxh" />
     <None Include="Shaders\Common.fxh" />

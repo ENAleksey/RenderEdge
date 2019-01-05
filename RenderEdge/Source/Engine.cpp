@@ -84,7 +84,7 @@ CEngine::CEngine(IDirect3DDevice9* pDevice)
 	fTimer = 0.0f;
 
 	bDefaultRenderer = false;
-	bVsyncEnabled = false;
+	bVsyncEnabled = true;
 	bDebugInfo = true;
 	bGamePaused = false;
 	bTakeScreenshot = false;
@@ -568,12 +568,51 @@ bool CEngine::ReadConfigFile(const std::string& fileName)
 	ConfigINI.GetUInt("Lighting", "PointLight.IntensityUnits", pointLightUnits);
 	DefaultPointLightIntensityUnits = static_cast<ELightUnits>(pointLightUnits);
 
+	// Image Based Lighting
+	ConfigINI.GetBool("IBL", "bEnabled", bIBL);
+	ConfigINI.GetString("IBL", "CubemapTexture", envTextureFileName);
+	ConfigINI.GetFloat("IBL", "CubemapBrightness", fCubemapBrightness);
+	ConfigINI.GetFloat("IBL", "CubemapRotation", fEnvCubemapRotation);
+	ConfigINI.GetBool("IBL", "bCubemapSwapYZ", bEnvCubemapSwapYZ);
+
+	// Terrain
+	if (CascadedShadows)
+		ConfigINI.GetBool("Material", "bCastShadows", CascadedShadows->bTerrainShadows);
+	ConfigINI.GetFloat("Material", "Roughness", fTerrainRoughness);
+	ConfigINI.GetFloat("Material", "Metallic", fTerrainMetallic);
+	ConfigINI.GetFloat("Material", "Specular", fTerrainSpecular);
+	ConfigINI.GetBool("Material", "bNormalMap", bNormalMapping);
+	ConfigINI.GetString("Material", "NormalMapTexture", normalTextureFileName);
+
+	// Objects
+	if (CascadedShadows)
+		ConfigINI.GetBool("Material", "bCastShadows", CascadedShadows->bObjectsShadows);
+	ConfigINI.GetFloat("Material", "Roughness", fMaterialRoughness);
+	ConfigINI.GetFloat("Material", "Metallic", fMaterialMetallic);
+	ConfigINI.GetFloat("Material", "Specular", fMaterialSpecular);
+	ConfigINI.GetFloat("Material", "Translucent", fMaterialTranslucent);
+	ConfigINI.GetBool("Material", "bMaterialColor", bMaterialColor);
+	ConfigINI.GetBool("Material", "bMaterialVertexColor", bMaterialVertexColor);
+	ConfigINI.GetBool("Material", "bUnshadedMaterials", bUnshadedMaterials);
+	ConfigINI.GetBool("Material", "bUnfoggedMaterials", bUnfoggedMaterials);
+	ConfigINI.GetBool("Material", "bMaterialColorSRGB", bMaterialColorSRGB);
+	ConfigINI.GetBool("Material", "bVertexColorSRGB", bVertexColorSRGB);
+
+	// Skybox
+	ConfigINI.GetBool("Skybox", "bShading", bSkyboxShading);
+	ConfigINI.GetBool("Skybox", "bUseFogColor", bSkyboxFog);
+	ConfigINI.GetBool("Skybox", "bFixTwitching", bSkyboxFixTwitching);
+	ConfigINI.GetFloat("Skybox", "Intensity", fSkyboxLightIntensity);
+
+	// Fog of War
+	ConfigINI.GetBool("FogOfWar", "bBuildingsShadows", bBuildingsShadows);
+	ConfigINI.GetBool("FogOfWar", "bMaskedObjects", bMaskedObjects);
+	ConfigINI.GetBool("FogOfWar", "bMapBounds", bMapBounds);
+
 	// Shadows
 	if (CascadedShadows)
 	{
-		ConfigINI.GetBool("Shadows", "bEnabled", CascadedShadows->bObjectsShadows);
 		ConfigINI.GetFloat("Shadows", "SoftTransitionScale", CascadedShadows->fSoftTransitionScale);
-		ConfigINI.GetFloat("Shadows", "ShadowSharpen", CascadedShadows->fShadowSharpen);
 		ConfigINI.GetFloat("Shadows", "BlurRadius", CascadedShadows->fRadius);
 		ConfigINI.GetFloat("Shadows", "AlphaThreshold", CascadedShadows->fAlphaThreshold);
 		ConfigINI.GetFloat("Shadows", "FarZ", CascadedShadows->fFarZ);
@@ -584,35 +623,12 @@ bool CEngine::ReadConfigFile(const std::string& fileName)
 		CascadedShadows->iShadowCullMode = static_cast<D3DCULL>(cullMode);
 	}
 
-	// Image Based Lighting
-	ConfigINI.GetBool("IBL", "bEnabled", bIBL);
-	ConfigINI.GetString("IBL", "CubemapTexture", envTextureFileName);
-	ConfigINI.GetFloat("IBL", "CubemapBrightness", fCubemapBrightness);
-	ConfigINI.GetFloat("IBL", "CubemapRotation", fEnvCubemapRotation);
-	ConfigINI.GetBool("IBL", "bCubemapSwapYZ", bEnvCubemapSwapYZ);
-
 	// Material
 	ConfigINI.GetBool("Material", "bEnablePBS", bPBS);
-	ConfigINI.GetFloat("Material", "Roughness", fMaterialRoughness);
-	ConfigINI.GetFloat("Material", "Metallic", fMaterialMetallic);
-	ConfigINI.GetFloat("Material", "Specular", fMaterialSpecular);
-	ConfigINI.GetFloat("Material", "Translucent", fMaterialTranslucent);
-	ConfigINI.GetString("Material", "NormalMapTexture", normalTextureFileName);
-	ConfigINI.GetBool("Material", "bNormalMap", bNormalMapping);
-	ConfigINI.GetBool("Material", "bAnisoFiltering", bAnisoFiltering);
+	ConfigINI.GetBool("Material", "bSimpleMaterial", bSimpleMaterial);
 	ConfigINI.GetBool("Material", "bTextures", bTexture);
-	ConfigINI.GetBool("Material", "bMaterialColor", bMaterialColor);
-	ConfigINI.GetBool("Material", "bMaterialVertexColor", bMaterialVertexColor);
-	ConfigINI.GetBool("Material", "bUnshadedMaterials", bUnshadedMaterials);
-	ConfigINI.GetBool("Material", "bUnfoggedMaterials", bUnfoggedMaterials);
-	ConfigINI.GetBool("Material", "bMaterialColorSRGB", bMaterialColorSRGB);
-	ConfigINI.GetBool("Material", "bVertexColorSRGB", bVertexColorSRGB);
-
-	// Skybox
-	ConfigINI.GetBool("Skybox", "bShading", bSkyboxShading);
-	ConfigINI.GetBool("Skybox", "bFog", bSkyboxFog);
-	ConfigINI.GetBool("Skybox", "bFixTwitching", bSkyboxFixTwitching);
-	ConfigINI.GetFloat("Skybox", "Intensity", fSkyboxLightIntensity);
+	ConfigINI.GetBool("Material", "bAnisoFiltering", bAnisoFiltering);
+	ConfigINI.GetUInt("Material", "iMaxAnisotropy", iMaxAnisotropy);
 
 	// Fog
 	ConfigINI.GetBool("Fog", "bEnabled", bEnableFog);
@@ -633,11 +649,6 @@ bool CEngine::ReadConfigFile(const std::string& fileName)
 	uint32 fogTech = 0;
 	ConfigINI.GetUInt("Fog", "Technique", fogTech);
 	iFogTech = static_cast<EFogTech>(fogTech);
-
-	// Fog of War
-	ConfigINI.GetBool("FogOfWar", "bBuildingsShadows", bBuildingsShadows);
-	ConfigINI.GetBool("FogOfWar", "bMaskedObjects", bMaskedObjects);
-	ConfigINI.GetBool("FogOfWar", "bMapBounds", bMapBounds);
 
 	// PostProcess
 	if (PostProcessing)
