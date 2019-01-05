@@ -219,7 +219,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 	}
 
 	// Override Presentation Parameters
-	if (!g_bVsyncEnabled)
+	if (Engine && !Engine->bVsyncEnabled)
 	{
 		PresentParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		PresentParams.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;

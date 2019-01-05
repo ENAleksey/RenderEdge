@@ -209,14 +209,6 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
 	g_presentParameters = *pPresentationParameters;
 
-	g_bWindowed = PresentParams.Windowed;
-
-	if (!g_bVsyncEnabled)
-	{
-		PresentParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-		PresentParams.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
-	}
-
 	// Get multisample quality level
 	if (PresentParams.MultiSampleType != D3DMULTISAMPLE_NONE)
 	{
@@ -249,10 +241,14 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 	if (Engine == nullptr)
 	{
 		Engine = new CEngine(DeviceInterface);
+		Engine->bWindowed = PresentParams.Windowed;
 	}
 		
 	// Set default vertex declaration
 	DeviceInterface->SetFVF(D3DFVF_XYZ);
+
+	// Update V-Sync State
+	ForceResetDevice8();
 
 	return D3D_OK;
 }

@@ -20,7 +20,7 @@ CAntTweakBar::~CAntTweakBar()
 
 void CAntTweakBar::OnResetDevice()
 {
-	TwWindowSize(g_vBufferSize.x, g_vBufferSize.y);
+	TwWindowSize(Engine->vBufferSize.x, Engine->vBufferSize.y);
 }
 
 void CAntTweakBar::OnLostDevice()

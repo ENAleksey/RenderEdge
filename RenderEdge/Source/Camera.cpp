@@ -139,12 +139,12 @@ void CCamera::SetActive(bool value)
 
 	if (m_bActive)
 	{
-		m_fYaw = D3DXToDegree(g_vCameraRotation.x);
-		m_fPitch = D3DXToDegree(g_vCameraRotation.y);
+		m_fYaw = D3DXToDegree(Engine->vCameraRotation.x);
+		m_fPitch = D3DXToDegree(Engine->vCameraRotation.y);
 
-		m_vEyePosition.x = g_vCameraPos.x;
-		m_vEyePosition.y = g_vCameraPos.y;
-		m_vEyePosition.z = g_vCameraPos.z;
+		m_vEyePosition.x = Engine->vCameraPos.x;
+		m_vEyePosition.y = Engine->vCameraPos.y;
+		m_vEyePosition.z = Engine->vCameraPos.z;
 
 		m_vTargetPosition = m_vEyePosition + GetForwardVector() * 100.0f;
 	}

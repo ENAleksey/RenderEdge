@@ -143,8 +143,8 @@ void CCascadedShadows::RenderCascade(uint32 curSplit)
 
 	// View Matrix
 	{
-		const float dist = min(fFarZ, g_fCameraFarZ);
-		D3DXVECTOR3 lightDir = g_bDefaultLightDir ? g_vGlobalLightDir : g_vLightDir;
+		const float dist = min(fFarZ, Engine->fCameraFarZ);
+		D3DXVECTOR3 lightDir = Engine->bDefaultLightDir ? Engine->vGlobalLightDir : Engine->vLightDir;
 		D3DXVECTOR3 lightPos = pFrustums[curSplit].center - lightDir * dist;
 		MatrixLookAtLH(&matView, &lightPos, &pFrustums[curSplit].center, &D3DXVECTOR3(0.0f, 0.0f, 1.0f));
 	}
@@ -244,22 +244,11 @@ void CCascadedShadows::UpdateSplitDist(Frustum* frustums, float nearClip, float 
 	float lambda = fSplitWeight;
 	float ratio = farClip / nearClip;
 
-	// Calculate how many shadow maps do we really need
-	/*m_currentSplitCount = 1;
-	if (!m_maxSplitDistances.empty())
-	{
-	for (size_t i = 0; i < m_maxSplitDistances.size(); i++)
-	{
-	float d = m_maxSplitDistances[i] - m_splitShift;
-	if (m_furthestPointInCamera >= d) m_currentSplitCount++;
-	}
-	}*/
-
 	for (uint32 i = 1; i < NUM_CASCADES; i++)
 	{
 		float si = i / (float)NUM_CASCADES;
 		frustums[i].neard = lambda * (nearClip * powf(ratio, si)) + (1 - lambda) * (nearClip + (farClip - nearClip) * si);
-		frustums[i - 1].fard = frustums[i].neard;// *1.005f;
+		frustums[i - 1].fard = frustums[i].neard;
 	}
 
 	frustums[0].neard = nearClip;
@@ -270,8 +259,8 @@ void CCascadedShadows::UpdateCascades()
 {
 	float cascadeSplits[NUM_CASCADES];
 
-	float nearClip = g_fCameraNearZ;
-	float farClip = g_fCameraFarZ;
+	float nearClip = Engine->fCameraNearZ;
+	float farClip = Engine->fCameraFarZ;
 	float clipRange = farClip - nearClip;
 
 	float minZ = nearClip;
@@ -310,7 +299,7 @@ void CCascadedShadows::UpdateCascades()
 
 		// Project frustum corners into world space
 		D3DXMATRIX invCam;
-		D3DXMatrixInverse(&invCam, nullptr, &(g_mProj * g_mView));
+		D3DXMatrixInverse(&invCam, nullptr, &(Engine->mProjGlobal * Engine->mViewGlobal));
 		for (uint32 i = 0; i < 8; i++)
 		{
 			D3DXVECTOR4 invCorner = D3DXVECTOR4(frustumCorners[i], 1.0f);
@@ -344,13 +333,13 @@ void CCascadedShadows::UpdateCascades()
 		D3DXVECTOR3 maxExtents = D3DXVECTOR3(radius, radius, radius);
 		D3DXVECTOR3 minExtents = -maxExtents;
 
-		D3DXVECTOR3 lightDir = g_bDefaultLightDir ? g_vGlobalLightDir : g_vLightDir;
+		D3DXVECTOR3 lightDir = Engine->bDefaultLightDir ? Engine->vGlobalLightDir : Engine->vLightDir;
 		D3DXMATRIX lightViewMatrix, lightOrthoMatrix;
 		MatrixLookAtLH(&lightViewMatrix, &(frustumCenter - lightDir * -minExtents.z), &frustumCenter, &D3DXVECTOR3(0.0f, 0.0f, 1.0f));
 		D3DXMatrixOrthoOffCenterLH(&lightOrthoMatrix, minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
 
 		// Store split distance and matrix in cascade
-		splitDepths[i] = (g_fCameraNearZ + splitDist * clipRange) * -1.0f;
+		splitDepths[i] = (Engine->fCameraNearZ + splitDist * clipRange) * -1.0f;
 		mShadow[i] = lightOrthoMatrix * lightViewMatrix;
 
 		lastSplitDist = cascadeSplits[i];
@@ -463,15 +452,15 @@ void CCascadedShadows::Render()
 
 	// Update Splits Distances
 	{
-		const float nearZ = max(100.0f, g_fCameraNearZ);
-		const float farZ = min(fFarZ, g_fCameraFarZ);
+		const float nearZ = max(100.0f, Engine->fCameraNearZ);
+		const float farZ = min(fFarZ, Engine->fCameraFarZ);
 
 		UpdateSplitDist(pFrustums, nearZ, farZ);
 
 		for (uint32 i = 0; i < NUM_CASCADES; i++)
 		{
 			D3DXVECTOR4 bound;
-			D3DXVec4Transform(&bound, &D3DXVECTOR4(0, 0, pFrustums[i].fard, 1), &g_mProj);
+			D3DXVec4Transform(&bound, &D3DXVECTOR4(0, 0, pFrustums[i].fard, 1), &Engine->mProjGlobal);
 			splitDepths[i] = bound.z;
 		}
 	}
@@ -497,16 +486,16 @@ void CCascadedShadows::Render()
 		m_pDevice->SetRenderState(D3DRS_LIGHTING, FALSE);
 		m_pDevice->SetRenderState(D3DRS_CULLMODE, iShadowCullMode);
 
-		const D3DXVECTOR3 view_dir = D3DXVECTOR3(g_mView._13, g_mView._23, g_mView._33);
+		const D3DXVECTOR3 view_dir = D3DXVECTOR3(Engine->mViewGlobal._13, Engine->mViewGlobal._23, Engine->mViewGlobal._33);
 		const float camFoV = D3DXToRadian(fFoV);
-		const float aspectRatio = g_vBufferSize.x * g_vBufferSize.w;
+		const float aspectRatio = Engine->vBufferSize.x * Engine->vBufferSize.w;
 
 		for (uint32 i = 0; i < NUM_CASCADES; i++)
 		{
 			pFrustums[i].fov = camFoV;
 			pFrustums[i].ratio = aspectRatio;
 
-			UpdateFrustumPoints(pFrustums[i], g_vCameraPos, view_dir);
+			UpdateFrustumPoints(pFrustums[i], Engine->vCameraPos, view_dir);
 
 			RenderCascade(i);
 		}
@@ -520,5 +509,5 @@ void CCascadedShadows::Render()
 
 	// Debug Screen
 	if (PostProcessing)
-		PostProcessing->SetDebugScreen(EDebugScreen::CascadedShadows, &shadowRT, true, D3DXVECTOR2(1.0f, NUM_CASCADES * g_vBufferSize.y * g_vBufferSize.z));
+		PostProcessing->SetDebugScreen(EDebugScreen::CascadedShadows, &shadowRT, true, D3DXVECTOR2(1.0f, NUM_CASCADES * Engine->vBufferSize.y * Engine->vBufferSize.z));
 }
