@@ -166,9 +166,6 @@
     <Filter Include="Sources\Resource Manager">
       <UniqueIdentifier>{42b3267a-1b4b-4101-a1a5-5afc8080e6ef}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders">
-      <UniqueIdentifier>{d504d779-ec1b-472f-a34a-7e4e6b6b22db}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Sources\Systems">
       <UniqueIdentifier>{566c6bd2-8992-44fc-91c6-e5d26ed49966}</UniqueIdentifier>
     </Filter>
@@ -184,79 +181,91 @@
     <Filter Include="Sources\Utils\Hook">
       <UniqueIdentifier>{119efd6a-3364-42cd-9767-7f0878d430c2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{5636b016-fe8d-41fa-9883-2edd10056d8c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Shaders">
+      <UniqueIdentifier>{d504d779-ec1b-472f-a34a-7e4e6b6b22db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Textures">
+      <UniqueIdentifier>{077064fe-4bbd-4774-a06e-61e707f3c841}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\Random.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\Shading.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\ShadowCommon.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\SMAA.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\SSAO.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\SSR.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\TAA.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\ToneMapping.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\ACES.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\Bloom.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\Common.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\CompositeUI.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\ContactShadows.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\EyeAdaptation.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\Fog.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\GammaCorrection.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\LutBaker.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="Shaders\PostProcessCommon.fxh">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </None>
     <None Include="..\Bin\Release\RenderEdge.ini" />
+    <None Include="Resources\RenderEdge.ini">
+      <Filter>Resources</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Shadows.fx">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Skybox.fx">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\SMAA.fx">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Standard.fx">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\PostProcess.fx">
-      <Filter>Shaders</Filter>
+      <Filter>Resources\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>

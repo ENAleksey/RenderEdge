@@ -395,6 +395,50 @@ void CAntTweakBar::Init()
 
 	TwAddSeparator(bar, "", "");
 
+	// Sky Light
+	// ===========================================================
+	TwAddVarRW(bar, "bUseDefLightAmbient", TW_TYPE_BOOLCPP, &Engine->bDefaultAmbientColor, " group='Sky Light' label='Default Color' ");
+	TwAddVarRW(bar, "bSRGBAmbientLightColor", TW_TYPE_BOOLCPP, &Engine->bAmbientColorSRGB, " group='Sky Light' label='sRGB Color' ");
+	TwAddVarRW(bar, "vAmbColor", TW_TYPE_COLOR3F, &Engine->vAmbColor, " group='Sky Light' label='Ambient Color' ");
+	TwAddSeparator(bar, "", " group='Sky Light' ");
+	TwAddVarRW(bar, "bEnableSkyLight", TW_TYPE_BOOLCPP, &Engine->bSkyLight, " group='Sky Light' label='Enabled' ");
+	TwAddVarRW(bar, "fSkyLightIntensity", TW_TYPE_FLOAT, &Engine->fSkyLightIntensity, " group='Sky Light' min=0 step=0.01 label='Intensity' ");
+	TwAddVarRW(bar, "vSkyColor", TW_TYPE_COLOR3F, &Engine->vSkyColor, " group='Sky Light' label='Sky' ");
+	TwAddVarRW(bar, "vIndColor", TW_TYPE_COLOR3F, &Engine->vIndColor, " group='Sky Light' label='Indirect' ");
+	TwDefine(" RenderEdge/'Sky Light' opened=false");
+
+	// Directional Light
+	// ===========================================================
+	TwAddVarRW(bar, "bUseDefLightDir", TW_TYPE_BOOLCPP, &Engine->bDefaultLightDir, " group='Directional Light' label='Default Direction' ");
+	TwAddVarRW(bar, "bUseDefLightColor", TW_TYPE_BOOLCPP, &Engine->bDefaultLightColor, " group='Directional Light' label='Default Color' ");
+	TwAddVarRW(bar, "bSRGBLightColor", TW_TYPE_BOOLCPP, &Engine->bLightColorSRGB, " group='Directional Light' label='sRGB Color' ");
+	TwAddSeparator(bar, "", " group='Directional Light' ");
+	TwAddVarRW(bar, "fLightIntensity", TW_TYPE_FLOAT, &Engine->fLightIntensity, " group='Directional Light' min=0 step=0.01 label='Intensity' ");
+	TwAddVarRW(bar, "vLightColor", TW_TYPE_COLOR3F, &Engine->vLightColor, " group='Directional Light' label='Color' ");
+	TwAddVarRW(bar, "vLightDir", TW_TYPE_DIR3F, &Engine->vLightDir, " group='Directional Light' opened=false axisz=z showval=true label='Direction' ");
+	TwAddVarRW(bar, "fLightTemperature", TW_TYPE_FLOAT, &Engine->fLightTemperature, " group='Directional Light' min=1700 max=12000 step=1 label='Temperature' ");
+	TwAddVarRW(bar, "bUseTemperature", TW_TYPE_BOOLCPP, &Engine->bUseTemperature, " group='Directional Light' label='Use Temperature' ");
+	TwDefine(" RenderEdge/'Directional Light' opened=false");
+
+	// Point Light
+	// ===========================================================
+	TwAddVarRW(bar, "bEnablePointLight", TW_TYPE_BOOLCPP, &Engine->bPointLight, " group='Point Light' label='Enabled' ");
+	TwAddVarRW(bar, "bSRGBPointLightColor", TW_TYPE_BOOLCPP, &Engine->bPointLightColorSRGB, " group='Point Light' label='sRGB Color' ");
+	TwAddVarRW(bar, "DefaultPointLightIntensityUnits", lightUnitsListType, &Engine->DefaultPointLightIntensityUnits, " group='Point Light' label='Intensity Units' ");
+	TwAddVarRW(bar, "fDefaultPointLightIntensity", TW_TYPE_FLOAT, &Engine->fDefaultPointLightIntensity, " group='Point Light' min=0 step=0.01 label='Intensity Multiplier' ");
+	TwAddVarRW(bar, "fDefaultPointLightRadius", TW_TYPE_FLOAT, &Engine->fDefaultPointLightRadius, " group='Point Light' min=0 max=10000.0 step=1 label='Radius' ");
+	TwDefine(" RenderEdge/'Point Light' opened=false");
+
+	// Image Based Lighting
+	// ===========================================================
+	TwAddVarRW(bar, "bEnableIBL", TW_TYPE_BOOLCPP, &Engine->bIBL, " group='Image Based Lighting' label='Enabled' ");
+	TwAddVarRW(bar, "fCubemapBrightness", TW_TYPE_FLOAT, &Engine->fCubemapBrightness, " group='Image Based Lighting' min=0 max=5 step=0.01 label='Cubemap Brightness' ");
+	TwAddVarRW(bar, "fEnvCubemapRotation", TW_TYPE_FLOAT, &Engine->fEnvCubemapRotation, " group='Image Based Lighting' min=0 max=360 step=1.0 label='Source Cubemap Angle' ");
+	TwAddVarRW(bar, "bEnvCubemapSwapYZ", TW_TYPE_BOOLCPP, &Engine->bEnvCubemapSwapYZ, " group='Image Based Lighting' label='Swap YZ' ");
+	TwDefine(" RenderEdge/'Image Based Lighting' opened=false");
+
+	TwAddSeparator(bar, "", "");
+
 	// Terrain
 	// ===========================================================
 	if (CascadedShadows)
@@ -444,50 +488,6 @@ void CAntTweakBar::Init()
 	TwAddVarCB(bar, "bMaskedObjects", TW_TYPE_BOOLCPP, SetMaskedObject_cb, GetMaskedObject_cb, nullptr, " group='Fog of War' label='Masked Objects' ");
 	TwAddVarCB(bar, "bMapBounds", TW_TYPE_BOOLCPP, SetMapBounds_cb, GetMapBounds_cb, nullptr, " group='Fog of War' label='Map Bounds' ");
 	TwDefine(" RenderEdge/'Fog of War' opened=false");
-
-	TwAddSeparator(bar, "", "");
-
-	// Sky Light
-	// ===========================================================
-	TwAddVarRW(bar, "bUseDefLightAmbient", TW_TYPE_BOOLCPP, &Engine->bDefaultAmbientColor, " group='Sky Light' label='Default Color' ");
-	TwAddVarRW(bar, "bSRGBAmbientLightColor", TW_TYPE_BOOLCPP, &Engine->bAmbientColorSRGB, " group='Sky Light' label='sRGB Color' ");
-	TwAddVarRW(bar, "vAmbColor", TW_TYPE_COLOR3F, &Engine->vAmbColor, " group='Sky Light' label='Ambient Color' ");
-	TwAddSeparator(bar, "", " group='Sky Light' ");
-	TwAddVarRW(bar, "bEnableSkyLight", TW_TYPE_BOOLCPP, &Engine->bSkyLight, " group='Sky Light' label='Enabled' ");
-	TwAddVarRW(bar, "fSkyLightIntensity", TW_TYPE_FLOAT, &Engine->fSkyLightIntensity, " group='Sky Light' min=0 step=0.01 label='Intensity' ");
-	TwAddVarRW(bar, "vSkyColor", TW_TYPE_COLOR3F, &Engine->vSkyColor, " group='Sky Light' label='Sky' ");
-	TwAddVarRW(bar, "vIndColor", TW_TYPE_COLOR3F, &Engine->vIndColor, " group='Sky Light' label='Indirect' ");
-	TwDefine(" RenderEdge/'Sky Light' opened=false");
-
-	// Directional Light
-	// ===========================================================
-	TwAddVarRW(bar, "bUseDefLightDir", TW_TYPE_BOOLCPP, &Engine->bDefaultLightDir, " group='Directional Light' label='Default Direction' ");
-	TwAddVarRW(bar, "bUseDefLightColor", TW_TYPE_BOOLCPP, &Engine->bDefaultLightColor, " group='Directional Light' label='Default Color' ");
-	TwAddVarRW(bar, "bSRGBLightColor", TW_TYPE_BOOLCPP, &Engine->bLightColorSRGB, " group='Directional Light' label='sRGB Color' ");
-	TwAddSeparator(bar, "", " group='Directional Light' ");
-	TwAddVarRW(bar, "fLightIntensity", TW_TYPE_FLOAT, &Engine->fLightIntensity, " group='Directional Light' min=0 step=0.01 label='Intensity' ");
-	TwAddVarRW(bar, "vLightColor", TW_TYPE_COLOR3F, &Engine->vLightColor, " group='Directional Light' label='Color' ");
-	TwAddVarRW(bar, "vLightDir", TW_TYPE_DIR3F, &Engine->vLightDir, " group='Directional Light' opened=false axisz=z showval=true label='Direction' ");
-	TwAddVarRW(bar, "fLightTemperature", TW_TYPE_FLOAT, &Engine->fLightTemperature, " group='Directional Light' min=1700 max=12000 step=1 label='Temperature' ");
-	TwAddVarRW(bar, "bUseTemperature", TW_TYPE_BOOLCPP, &Engine->bUseTemperature, " group='Directional Light' label='Use Temperature' ");
-	TwDefine(" RenderEdge/'Directional Light' opened=false");
-
-	// Point Light
-	// ===========================================================
-	TwAddVarRW(bar, "bEnablePointLight", TW_TYPE_BOOLCPP, &Engine->bPointLight, " group='Point Light' label='Enabled' ");
-	TwAddVarRW(bar, "bSRGBPointLightColor", TW_TYPE_BOOLCPP, &Engine->bPointLightColorSRGB, " group='Point Light' label='sRGB Color' ");
-	TwAddVarRW(bar, "DefaultPointLightIntensityUnits", lightUnitsListType, &Engine->DefaultPointLightIntensityUnits, " group='Point Light' label='Intensity Units' ");
-	TwAddVarRW(bar, "fDefaultPointLightIntensity", TW_TYPE_FLOAT, &Engine->fDefaultPointLightIntensity, " group='Point Light' min=0 step=0.01 label='Intensity Multiplier' ");
-	TwAddVarRW(bar, "fDefaultPointLightRadius", TW_TYPE_FLOAT, &Engine->fDefaultPointLightRadius, " group='Point Light' min=0 max=10000.0 step=1 label='Radius' ");
-	TwDefine(" RenderEdge/'Point Light' opened=false");
-
-	// Image Based Lighting
-	// ===========================================================
-	TwAddVarRW(bar, "bEnableIBL", TW_TYPE_BOOLCPP, &Engine->bIBL, " group='Image Based Lighting' label='Enabled' ");
-	TwAddVarRW(bar, "fCubemapBrightness", TW_TYPE_FLOAT, &Engine->fCubemapBrightness, " group='Image Based Lighting' min=0 max=5 step=0.01 label='Cubemap Brightness' ");
-	TwAddVarRW(bar, "fEnvCubemapRotation", TW_TYPE_FLOAT, &Engine->fEnvCubemapRotation, " group='Image Based Lighting' min=0 max=360 step=1.0 label='Source Cubemap Angle' ");
-	TwAddVarRW(bar, "bEnvCubemapSwapYZ", TW_TYPE_BOOLCPP, &Engine->bEnvCubemapSwapYZ, " group='Image Based Lighting' label='Swap YZ' ");
-	TwDefine(" RenderEdge/'Image Based Lighting' opened=false");
 
 	TwAddSeparator(bar, "", "");
 
