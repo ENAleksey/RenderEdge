@@ -81,6 +81,15 @@ void CCascadedShadows::ReleaseMeshes()
 	unitMeshes.clear();
 }
 
+void CCascadedShadows::ReloadShaders()
+{
+	if (ResourceManager)
+	{
+		SAFE_RELEASE(m_pEffect);
+		ResourceManager->LoadShader("Shaders\\Shadows.cso", nullptr, &m_pEffect);
+	}
+}
+
 
 D3DXMATRIX* MatrixLookAtLH(D3DXMATRIX* pOut, const D3DXVECTOR3* pEye, const D3DXVECTOR3* pAt, const D3DXVECTOR3* pUp)
 {

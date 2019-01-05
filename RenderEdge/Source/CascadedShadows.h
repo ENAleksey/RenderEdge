@@ -21,10 +21,11 @@ class CCascadedShadows
 {
 private:
 	IDirect3DDevice9* m_pDevice;
-	//uint32 m_iNumCascades;
+	ID3DXEffect* m_pEffect;
 	TextureRenderTarget2D shadowRT;
 	IDirect3DSurface9* pShadowDepth;
 	IDirect3DVertexDeclaration9* pVertexDecl;
+	//uint32 m_iNumCascades;
 
 	void UpdateCascades();
 	void UpdateSplitDist(Frustum* frustums, float nd, float fd);
@@ -37,14 +38,13 @@ public:
 
 	void OnResetDevice();
 	void OnLostDevice();
+	void ReloadShaders();
 
 	bool IsEnabled() { return (bObjectsShadows || bTerrainShadows); }
 	//const uint32& GetCascadesCount() { return m_iNumCascades; }
 	IDirect3DTexture9* GetTexture() { return shadowRT.GetTexture(); }
 	void ReleaseMeshes();
 	void Render();
-
-	ID3DXEffect* m_pEffect;
 
 	bool bObjectsShadows;
 	bool bTerrainShadows;

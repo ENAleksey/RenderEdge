@@ -248,6 +248,15 @@ void CPostProcessing::ReleaseTemporaryResources()
 		noiseTextures[i].Release();
 }
 
+void CPostProcessing::ReloadShaders()
+{
+	if (ResourceManager)
+	{
+		SAFE_RELEASE(m_pEffect);
+		ResourceManager->LoadShader("Shaders\\PostProcess.cso", nullptr, &m_pEffect);
+	}
+}
+
 
 void CPostProcessing::DrawFullScreenTriangle(float x, float y, float width, float height)
 {

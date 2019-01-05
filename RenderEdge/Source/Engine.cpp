@@ -1517,19 +1517,13 @@ void CEngine::ReloadShaders()
 
 		SAFE_RELEASE(g_pSkyboxFX);
 		ResourceManager->LoadShader("Shaders\\Skybox.cso", nullptr, &g_pSkyboxFX);
-
-		if (CascadedShadows)
-		{
-			SAFE_RELEASE(CascadedShadows->m_pEffect);
-			ResourceManager->LoadShader("Shaders\\Shadows.cso", nullptr, &CascadedShadows->m_pEffect);
-		}
-
-		if (PostProcessing)
-		{
-			SAFE_RELEASE(PostProcessing->m_pEffect);
-			ResourceManager->LoadShader("Shaders\\PostProcess.cso", nullptr, &PostProcessing->m_pEffect);
-		}
 	}
+
+	if (CascadedShadows)
+		CascadedShadows->ReloadShaders();
+
+	if (PostProcessing)
+		PostProcessing->ReloadShaders();
 }
 
 void CEngine::OnCreateDevice()
@@ -1671,15 +1665,14 @@ void CEngine::OnMapStart()
 				SAFE_RELEASE(g_pStandardFX);
 				ResourceManager->LoadShader("Shaders\\Standard.cso", nullptr, &g_pStandardFX, true);
 			}
-			if (listFile.find("Shaders\\PostProcess.cso") != -1 && PostProcessing)
-			{
-				SAFE_RELEASE(PostProcessing->m_pEffect);
-				ResourceManager->LoadShader("Shaders\\PostProcess.cso", nullptr, &PostProcessing->m_pEffect, true);
-			}
 			if (listFile.find("Shaders\\Skybox.cso") != -1)
 			{
 				SAFE_RELEASE(g_pSkyboxFX);
 				ResourceManager->LoadShader("Shaders\\Skybox.cso", nullptr, &g_pSkyboxFX, true);
+			}
+			if (listFile.find("Shaders\\PostProcess.cso") != -1 && PostProcessing)
+			{
+				PostProcessing->ReloadShaders();
 			}
 		}
 	}
