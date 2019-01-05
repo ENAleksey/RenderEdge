@@ -9,7 +9,7 @@ CAntTweakBar::CAntTweakBar(IDirect3DDevice9* pDevice)
 	m_pDevice = pDevice;
 	bActive = true;
 
-	OnResetDevice();
+	Init();
 }
 
 CAntTweakBar::~CAntTweakBar()
@@ -18,14 +18,14 @@ CAntTweakBar::~CAntTweakBar()
 }
 
 
-//void CAntTweakBar::OnResetDevice()
-//{
-//	
-//}
+void CAntTweakBar::OnResetDevice()
+{
+	TwWindowSize(g_vBufferSize.x, g_vBufferSize.y);
+}
 
 void CAntTweakBar::OnLostDevice()
 {
-	TwTerminate();
+	TwWindowSize(0, 0);
 }
 
 bool CAntTweakBar::OnGetMessage(HWND ah_Wnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

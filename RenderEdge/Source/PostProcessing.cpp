@@ -47,7 +47,7 @@ CPostProcessing::CPostProcessing(IDirect3DDevice9* pDevice)
 	bBloom = false;
 	fBloomThreshold = 1.0f;
 	fBloomIntensity = 0.5f;
-	fBloomRadius = 7.0f;
+	iBloomPasses = 7;
 	fBloomAnamorphicRatio = 0.0f;
 	//fBloomSoftKnee = 0.5f;
 
@@ -793,10 +793,6 @@ void CPostProcessing::RenderBloom(TextureRenderTarget2D* sourceRT)
 	};
 
 	// Prefiltering parameters
-	/*float lthresh = math::ToLinearSpace(g_fBloomThreshold);
-	float knee = lthresh * g_fBloomSoftKnee + 1e-5f;
-	D3DXVECTOR4 threshold = D3DXVECTOR4(lthresh, lthresh - knee, knee * 2.0f, 0.25f / knee);
-	m_pEffect->SetValue("g_vBloomThreshold", &threshold, sizeof(D3DXVECTOR4));*/
 	m_pEffect->SetFloat("g_fBloomThreshold", fBloomThreshold);
 	m_pEffect->SetTexture("g_curExposureTexture", adaptedExposureRTs[0].GetTexture());
 	m_pEffect->SetBool("g_bAutoExposure", bAutoExposure);
@@ -809,12 +805,12 @@ void CPostProcessing::RenderBloom(TextureRenderTarget2D* sourceRT)
 	uint32 th = math::FloorToInt(g_vBufferSize.y / (2.0f - rh));
 
 	// Determine the iteration count
-	uint32 s = max(tw, th);
-	float logs = log2(s) + min(fBloomRadius, 10.0f) - 10.0f;
-	uint32 logs_i = math::FloorToInt(logs);
-	const uint32 iterations = math::Clamp((uint32)fBloomRadius, 1, 16);
-	float sampleScale = 0.5f + logs - logs_i;
-	m_pEffect->SetFloat("g_fBloomScale", g_fDebugValue);
+	//uint32 s = max(tw, th);
+	//float logs = log2(s) + min(fBloomRadius, 10.0f) - 10.0f;
+	//uint32 logs_i = math::FloorToInt(logs);
+	const uint32 iterations = iBloomPasses;// math::Clamp(fBloomRadius, 2, 16);
+	//float sampleScale = 0.5f + logs - logs_i;
+	m_pEffect->SetFloat("g_fBloomScale", 1.0f);
 
 	TextureRenderTarget2D* pLastRT = sourceRT;
 	TextureRenderTarget2D* downsampleRTs = new TextureRenderTarget2D[iterations];
@@ -853,7 +849,6 @@ void CPostProcessing::RenderBloom(TextureRenderTarget2D* sourceRT)
 
 	// Debug Screen
 	PostProcessing->SetDebugScreen(EDebugScreen::BloomBrightPass, &downsampleRTs[0]);
-	PostProcessing->SetDebugScreen(EDebugScreen::Bloom, pLastRT);
 
 	// Final EPass
 	{
@@ -979,12 +974,10 @@ void CPostProcessing::FinalPass(TextureRenderTarget2D* sourceRT, IDirect3DSurfac
 	// Debug Screen
 	if (bDebugView)
 	{
+		PostProcessing->SetDebugScreen(EDebugScreen::SceneColor, sourceRT);
 		PostProcessing->SetDebugScreen(EDebugScreen::SceneDepth, &g_depthRT, true);
 
-		if (iDebugScreen == EDebugScreen::SceneDepth)
-			ApplyEffect(destRT, "FinalPass", EPass::DebugDepth);
-		else
-			ApplyEffect(destRT, "FinalPass", EPass::Debug);
+		ApplyEffect(destRT, "FinalPass", (iDebugScreen == EDebugScreen::SceneDepth) ? EPass::DebugDepth : EPass::Debug);
 
 		m_pEffect->SetTexture("g_debugTexture", nullptr);
 
@@ -1121,7 +1114,6 @@ void CPostProcessing::Render()
 		mView = ViewMatrix;
 	}
 
-
 	D3DXMatrixInverse(&mViewInv, nullptr, &mView);
 	D3DXMatrixInverse(&mProjInv, nullptr, &mProj);
 	//D3DXMATRIX mInvViewProj;
@@ -1137,7 +1129,6 @@ void CPostProcessing::Render()
 	m_pEffect->SetMatrix("g_mInvViewProj", &(mProjInv * mViewInv));
 	m_pEffect->SetValue("g_vCameraPos", &g_vCameraPos, sizeof(D3DXVECTOR3));
 	m_pEffect->SetTexture("g_depthTexture", g_depthRT.GetTexture());
-
 
 	const float fn = g_fCameraFarZ / g_fCameraNearZ;
 	m_pEffect->SetValue("g_vCameraClipPlanes", D3DXVECTOR4(1.0f - fn, fn, g_fCameraNearZ, g_fCameraFarZ), sizeof(D3DXVECTOR4));

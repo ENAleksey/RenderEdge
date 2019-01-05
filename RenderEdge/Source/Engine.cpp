@@ -11,7 +11,7 @@
 
 #include "Mesh.h"
 #include "SMAA.h"
-#include "FVector.h"
+#include "FColor.h"
 #include "MPQ.h"
 #include "INIReader.h"
 #include "Log.h"
@@ -22,6 +22,7 @@
 #include "ResourceManager.h"
 #include "FontManager.h"
 #include "TextureManager.h"
+#include "SystemTextures.h"
 #include "PostProcessing.h"
 #include "CascadedShadows.h"
 #include "RenderingHook.h"
@@ -34,10 +35,7 @@
 #include "GameOffsets.h"
 #include "CustomJassNatives.h"
 
-
-#define ENVMAPSIZE 256
-#define USE_ANTTWEAKBAR 1
-
+//#define USE_ANTTWEAKBAR
 
 const std::string RenderEdgeVersion = "RenderEdge v0.3.0dev";
 
@@ -68,6 +66,7 @@ bool g_bVsyncEnabled = false;
 bool g_bDebugInfo = true;
 bool g_bGamePaused = false;
 bool g_bTakeScreenshot = false;
+bool g_bWindowed = true;
 
 bool g_bFreeCamera = false;
 bool g_bDefaultProjectionMatrix = true;
@@ -76,9 +75,6 @@ float g_fCameraNearZ = 100.0f;
 float g_fCameraFarZ = 5000.0f;
 D3DXVECTOR3 g_vCameraPos;
 D3DXVECTOR3 g_vCameraRotation;
-
-//IDirect3DCubeTexture9* g_pEnvProbeCubeTexture = nullptr;
-//ID3DXRenderToEnvMap* g_pRenderToEnvMap;
 
 ID3DXEffect* g_pStandardFX = nullptr;
 ID3DXEffect* g_pSkyboxFX = nullptr;
@@ -89,29 +85,12 @@ D3DXMATRIX g_mViewProjectionInverse;
 D3DXMATRIX g_mProjPrev;
 D3DXMATRIX g_mProj, g_mView;
 D3DXMATRIX g_mProjNonJittered;
-void OnFrameRenderingSetup(uint32 SampleCount);
-
-bool g_bRenderEnvMap = false;
-
-struct EnvProbe
-{
-	float Pos[3];
-	float Radius;
-	bool Dynamic;
-	//Sprite2D Sprite;
-};
-
-EnvProbe BaseEnv =
-{
-	-100.0f, -200.0f, 150.0f,
-	5000.0f,
-	false
-};
 
 
 bool g_bHDRStarted = false;
 bool g_bPostProcessRendered = false;
 bool g_bSceneUpdated = false;
+bool g_bMapLoaded = false;
 
 
 bool g_bDefaultLightDir = true;
@@ -119,7 +98,6 @@ bool g_bDefaultLightColor = true;
 bool g_bDefaultAmbientColor = true;
 bool g_bSkyLight = false;
 bool g_bUseTemperature = false;
-float g_fSkyLightBlendFactor = 0.5f;
 float g_fSkyLightIntensity = 1.0f;
 float g_fLightIntensity = 1.0f;
 float g_fLightTemperature = 6500.0f;
@@ -136,17 +114,6 @@ bool g_bAmbientColorSRGB = true;
 bool g_bLightColorSRGB = true;
 bool g_bPointLightColorSRGB = true;
 bool g_bFogColorSRGB = true;
-
-
-
-
-//float mBetaRs = 100.0f;       // Scattering coef. of Rayleigh scattering [1/m]
-//float mBetaMs = 100.0f;       // Scattering coef. of Mie scattering [1/m]
-//float mBetaMa = 10000.0f;       // Absorption coef. of Mie scattering [1/m]
-//float mMieAsymmetry = 0.8f; // Asymmetry factor of Mie scattering [-]
-//D3DXVECTOR3 mAlbedoR = D3DXVECTOR3(0.0f, 0.5f, 1.0f);      // Control parameter of Rayleigh scattering color [-]
-//D3DXVECTOR3 mAlbedoM = D3DXVECTOR3(1.0f, 0.335f, 0.0f);      // Control parameter of Mie scattering color [-]
-
 
 
 enum class EFogTech : uint32
@@ -218,8 +185,8 @@ uint32 g_iPointLightCount = 0;
 ELightUnits g_DefaultPointLightIntensityUnits = ELightUnits::Unitless;
 float g_fDefaultPointLightIntensity = 100.0f;
 float g_fDefaultPointLightRadius = 10000.0f;
-FVector g_vPointLightColorAndIntensity[8];
-FVector g_vPointLightPosAndInvRadius[8];
+FColor g_vPointLightColorAndIntensity[8];
+FColor g_vPointLightPosAndInvRadius[8];
 
 
 bool g_bUserInterface = true;
@@ -257,7 +224,7 @@ std::string g_normalTextureFileName = "Textures\\test_normal.png";
 
 bool g_bPBS = false;
 bool g_bSimpleMaterial = false;
-float g_fMaterialRoughness = 0.5f;
+float g_fMaterialRoughness = 0.9f;
 float g_fMaterialMetallic = 0.0f;
 float g_fMaterialSpecular = 0.5f;
 float g_fMaterialTranslucent = 0.0f;
@@ -277,8 +244,7 @@ bool g_bSkyboxFixTwitching = false;
 float g_fSkyboxLightIntensity = 1.0f;
 
 
-ID3DXFont *g_pFont;
-
+ID3DXFont* g_pFont;
 
 
 
@@ -294,85 +260,70 @@ uint32 MiscDataGetColor(char* section, char* key)
 	return *fast_call<uint32*>(address_MiscDataGetColor, &color, section, key, 0);
 }
 
-void GetBackBufferSize(IDirect3DDevice9* pDevice)
+void UpdateWidescreenFix(float aspectRatio)
 {
-	IDirect3DSurface9* pSurface;
-	D3DSURFACE_DESC desc;
-
-	pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pSurface);
-	pSurface->GetDesc(&desc);
-	pSurface->Release();
-
-	g_vBufferSize = D3DXVECTOR4(
-		desc.Width,
-		desc.Height,
-		1.0f / desc.Width,
-		1.0f / desc.Height);
+	g_fWideScreenMul = aspectRatio * 0.75f;
 }
 
-void GetSupportedDepthFormat(IDirect3DDevice9* pDevice9)
+void SetScreenMode(bool bWindowed)
 {
-	D3DDISPLAYMODE currentDisplayMode;
-	IDirect3D9* d3d = nullptr;
-	pDevice9->GetDirect3D(&d3d);
-	d3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &currentDisplayMode);
+	static LONG DefaultWindowStyle = 382664704;
+	static LONG DefaultWindowExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+	static RECT OldWindowRect = { 100, 100, 900, 700 };
 
-	//bool isRESZ = d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, (D3DFORMAT)ETextureFormat::RESZ) == D3D_OK;
-	bool isINTZ = d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, (D3DFORMAT)ETextureFormat::INTZ) == D3D_OK;
-	bool isRAWZ = d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, (D3DFORMAT)ETextureFormat::RAWZ) == D3D_OK;
+	if (bWindowed)
+	{
+		uint32 width = OldWindowRect.right - OldWindowRect.left;
+		uint32 height = OldWindowRect.bottom - OldWindowRect.top;
 
-	d3d->Release();
-
-	if (isRAWZ || isINTZ)
-		g_depthFormat = isINTZ ? ETextureFormat::INTZ : ETextureFormat::RAWZ;
+		SetWindowLongPtr(Input::hWnd, GWL_EXSTYLE, DefaultWindowExStyle);
+		SetWindowLongPtr(Input::hWnd, GWL_STYLE, DefaultWindowStyle);
+		SetWindowPos(Input::hWnd, HWND_NOTOPMOST, OldWindowRect.left, OldWindowRect.top, width, height, 0);
+	}
 	else
-		Message("INTZ and RAWZ depth formats are not supported", "GetSupportedDepthFormat");
+	{
+		GetWindowRect(Input::hWnd, &OldWindowRect);
+		DefaultWindowStyle = GetWindowLong(Input::hWnd, GWL_STYLE);
+		DefaultWindowExStyle = GetWindowLong(Input::hWnd, GWL_EXSTYLE);
+
+		HDC windowHDC = GetDC(Input::hWnd);
+		uint32 width = GetDeviceCaps(windowHDC, HORZRES);
+		uint32 height = GetDeviceCaps(windowHDC, VERTRES);
+
+		SetWindowLongPtr(Input::hWnd, GWL_EXSTYLE, WS_EX_APPWINDOW);
+		SetWindowLongPtr(Input::hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+		SetWindowPos(Input::hWnd, HWND_TOPMOST, 0, 0, width, height, SWP_SHOWWINDOW);
+	}
 }
 
-void UpdateWidescreenFix(float width, float height)
+double GetTime()
 {
-	g_fWideScreenMul = 0.75f * (width / height);
+	auto beginningOfTime = std::chrono::system_clock::now().time_since_epoch();
+	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(beginningOfTime).count();
+
+	return ms * 0.001;
 }
 
-//D3DXMATRIX GetCubeMapViewMatrix(DWORD dwFace, D3DXVECTOR3 camPosition)
-//{
-//	D3DXVECTOR3 lookDir;
-//	D3DXVECTOR3 upDir;
-//
-//	switch (dwFace)
-//	{
-//	case D3DCUBEMAP_FACE_POSITIVE_X:
-//		lookDir = D3DXVECTOR3(1.0f, 0.0f, 0.0f);
-//		upDir = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-//		break;
-//	case D3DCUBEMAP_FACE_NEGATIVE_X:
-//		lookDir = D3DXVECTOR3(-1.0f, 0.0f, 0.0f);
-//		upDir = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-//		break;
-//	case D3DCUBEMAP_FACE_POSITIVE_Y:
-//		lookDir = D3DXVECTOR3(0.0f, 1.0f, 0.0f);
-//		upDir = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-//		break;
-//	case D3DCUBEMAP_FACE_NEGATIVE_Y:
-//		lookDir = D3DXVECTOR3(0.0f, -1.0f, 0.0f);
-//		upDir = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-//		break;
-//	case D3DCUBEMAP_FACE_POSITIVE_Z:
-//		lookDir = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-//		upDir = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-//		break;
-//	case D3DCUBEMAP_FACE_NEGATIVE_Z:
-//		lookDir = D3DXVECTOR3(0.0f, 0.0f, -1.0f);
-//		upDir = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
-//		break;
-//	}
-//
-//	lookDir += camPosition;
-//
-//	D3DXMATRIX cubeFaceView;
-//	D3DXMatrixLookAtLH(&cubeFaceView, &camPosition, &lookDir, &upDir);
-//	return cubeFaceView;
-//}
+void CalculateFrameRate()
+{
+	static double framesPerSecond = 0.0;
+	static double startTime = GetTime();
+	static double lastTime = GetTime();
+	static double currentFPS = 0.0;
+
+	double CurrentTime = GetTime();
+
+	g_fDeltaTime = CurrentTime - lastTime;
+	lastTime = CurrentTime;
+	++framesPerSecond;
+
+	if (CurrentTime - startTime > 1.0)
+	{
+		startTime = CurrentTime;
+		g_fFPS = framesPerSecond;
+		framesPerSecond = 0;
+	}
+}
 
 
 
@@ -416,20 +367,36 @@ void TW_CALL CAntTweakBar::GetFreeCamera_cb(void *value, void *clientData)
 	*(bool*)value = g_bFreeCamera;
 }
 
-bool g_bResetDevice = false;
 void TW_CALL CAntTweakBar::SetVsync_cb(const void *value, void *clientData)
 {
-	bool bValue = *(const bool*)value;
+	const bool bValue = *(const bool*)value;
 
 	if (g_bVsyncEnabled != bValue)
 	{
-		g_bResetDevice = true;
 		g_bVsyncEnabled = bValue;
+		ForceResetDevice8();
 	}
 }
 void TW_CALL CAntTweakBar::GetVsync_cb(void *value, void *clientData)
 {
 	*(bool*)value = g_bVsyncEnabled;
+}
+
+void TW_CALL CAntTweakBar::SetScreenMode_cb(const void *value, void *clientData)
+{
+	const bool bValue = *(const bool*)value;
+
+	if (g_bWindowed != bValue)
+	{
+		g_bWindowed = bValue;
+		Input::CenterMouse();
+		SetScreenMode(g_bWindowed);
+		ForceResetDevice8();
+	}
+}
+void TW_CALL CAntTweakBar::GetScreenMode_cb(void *value, void *clientData)
+{
+	*(bool*)value = g_bWindowed;
 }
 
 void UpdateUserInterface()
@@ -596,9 +563,16 @@ void TW_CALL CAntTweakBar::CheckAllRenderStages_cb(void *clientData)
 	RenderingHook::bRenderOcclusionMask = g_bRenderStagesChecked;
 	RenderingHook::bRenderLightning = g_bRenderStagesChecked;
 	RenderingHook::bRenderFloatingText = g_bRenderStagesChecked;
+	RenderingHook::bRenderCineFilter = g_bRenderStagesChecked;
 }
 
-void CAntTweakBar::OnResetDevice()
+void TW_CALL CAntTweakBar::ReloadShaders_cb(void *clientData)
+{
+	if (Engine)
+		Engine->ReloadShaders();
+}
+
+void CAntTweakBar::Init()
 {
 	if (!TwInit(TW_DIRECT3D9, m_pDevice))
 	{
@@ -611,11 +585,11 @@ void CAntTweakBar::OnResetDevice()
 
 	TwEnumVal debugScreenEV[] =
 	{
+		{ (uint32)EDebugScreen::SceneColor, "Scene Color" },
 		{ (uint32)EDebugScreen::SceneDepth, "Scene Depth" },
 		{ (uint32)EDebugScreen::CascadedShadows, "Cascaded Shadows" },
 		{ (uint32)EDebugScreen::ContactShadows, "Contact Shadows" },
 		{ (uint32)EDebugScreen::BloomBrightPass, "Bloom Bright Pass" },
-		{ (uint32)EDebugScreen::Bloom, "Bloom" },
 		{ (uint32)EDebugScreen::SSAO, "Ambient Occlusion" },
 		{ (uint32)EDebugScreen::SSR, "Screen Space Reflections" }
 	};
@@ -675,7 +649,6 @@ void CAntTweakBar::OnResetDevice()
 		{ "Z", TW_TYPE_FLOAT, offsetof(D3DXVECTOR3, z), " step=1 precision=3 " }
 	};
 
-
 	TwType debugScreenListType = TwDefineEnum("Debug Screen", debugScreenEV, 7);
 	TwType smaaInputListType = TwDefineEnum("SMAA Input", smaaInputEV, 3);
 	TwType fogTechListType = TwDefineEnum("Fog Tech", fogTechEV, 4);
@@ -693,8 +666,12 @@ void CAntTweakBar::OnResetDevice()
 	// ===========================================================
 	TwAddVarRW(bar, "bDefaultRenderer", TW_TYPE_BOOLCPP, &g_bDefaultRenderer, " group='Engine' label='Default Renderer' ");
 	TwAddVarCB(bar, "bGamePaused", TW_TYPE_BOOLCPP, SetPauseGame_cb, GetPauseGame_cb, nullptr, " group='Engine' label='Pause Game' ");
-	TwAddVarCB(bar, "bVsyncEnabled", TW_TYPE_BOOLCPP, SetVsync_cb, GetVsync_cb, nullptr, " group='Engine' label='V-Sync' ");
 	TwAddVarRW(bar, "bDebugInfo", TW_TYPE_BOOLCPP, &g_bDebugInfo, " group='Engine' label='Debug Info' ");
+	TwAddSeparator(bar, "", " group='Engine' ");
+	TwAddVarCB(bar, "bWindowed", TW_TYPE_BOOLCPP, SetScreenMode_cb, GetScreenMode_cb, nullptr, " group='Engine' readonly=true label='Windowed' ");
+	TwAddVarCB(bar, "bVsyncEnabled", TW_TYPE_BOOLCPP, SetVsync_cb, GetVsync_cb, nullptr, " group='Engine' label='V-Sync' ");
+	TwAddSeparator(bar, "", " group='Engine' ");
+	TwAddButton(bar, "ReloadShaders", ReloadShaders_cb, nullptr, " group='Engine' label='Reload Shaders' ");
 	TwDefine(" RenderEdge/'Engine' opened=true");
 
 	// Camera
@@ -737,6 +714,7 @@ void CAntTweakBar::OnResetDevice()
 	TwAddVarRW(bar, "bRenderSelectionBox", TW_TYPE_BOOLCPP, &RenderingHook::bRenderSelectionBox, " group='Render Stages' label='Selection Box' ");
 	TwAddVarRW(bar, "bRenderBuilding", TW_TYPE_BOOLCPP, &RenderingHook::bRenderBuilding, " group='Render Stages' label='Buildings' ");
 	TwAddVarRW(bar, "bRenderFloatingText", TW_TYPE_BOOLCPP, &RenderingHook::bRenderFloatingText, " group='Render Stages' label='Floating Text' ");
+	TwAddVarRW(bar, "bRenderCineFilter", TW_TYPE_BOOLCPP, &RenderingHook::bRenderCineFilter, " group='Render Stages' label='Cine Filter' ");
 	TwDefine(" RenderEdge/'Render Stages' opened=false");
 
 	TwAddSeparator(bar, "", "");
@@ -801,7 +779,6 @@ void CAntTweakBar::OnResetDevice()
 	TwAddSeparator(bar, "", " group='Sky Light' ");
 	TwAddVarRW(bar, "bEnableSkyLight", TW_TYPE_BOOLCPP, &g_bSkyLight, " group='Sky Light' label='Enabled' ");
 	TwAddVarRW(bar, "fSkyLightIntensity", TW_TYPE_FLOAT, &g_fSkyLightIntensity, " group='Sky Light' min=0 step=0.01 label='Intensity' ");
-	TwAddVarRW(bar, "fSkyLightBlendFactor", TW_TYPE_FLOAT, &g_fSkyLightBlendFactor, " group='Sky Light' min=0 max=1 step=0.01 label='Blend Factor' ");
 	TwAddVarRW(bar, "vSkyColor", TW_TYPE_COLOR3F, &g_vSkyColor, " group='Sky Light' label='Sky' ");
 	TwAddVarRW(bar, "vIndColor", TW_TYPE_COLOR3F, &g_vIndColor, " group='Sky Light' label='Indirect' ");
 	TwDefine(" RenderEdge/'Sky Light' opened=false");
@@ -845,7 +822,7 @@ void CAntTweakBar::OnResetDevice()
 	TwAddVarRW(bar, "bEnableTextures", TW_TYPE_BOOLCPP, &g_bTexture, " group='Material' label='Textures' ");
 	TwAddVarRW(bar, "bAnisoFiltering", TW_TYPE_BOOLCPP, &g_bAnisoFiltering, " group='Material' label='Anisotropic Filtering' ");
 	TwAddVarRW(bar, "iMaxAnisotropy", TW_TYPE_UINT16, &g_iMaxAnisotropy, " group='Material' min=1 max=16 label='Anisotropy Level' ");
-	//TwAddVarRW(bar, "iTextureFilter", debugScreenListType, &g_iTextureFilter, " group='Material' label='Texture Filter' ");
+	//TwAddVarRW(bar, "iTextureFilter", textureFilterListType, &g_iTextureFilter, " group='Material' label='Texture Filter' ");
 	TwDefine(" RenderEdge/'Material' opened=false");
 
 	// Shadows
@@ -861,7 +838,7 @@ void CAntTweakBar::OnResetDevice()
 		//TwAddVarRW(bar, "fShadowSharpen", TW_TYPE_FLOAT, &CascadedShadows->fShadowSharpen, " group='Shadows' min=1 max=10 step=0.01 label='Shadow Sharpen' ");
 		TwAddVarRW(bar, "fRadius", TW_TYPE_FLOAT, &CascadedShadows->fRadius, " group='Shadows' min=0 step=0.01 label='Blur Radius' ");
 		TwAddVarRW(bar, "fShadowFarZ", TW_TYPE_FLOAT, &CascadedShadows->fFarZ, " group='Shadows' label='FarZ' ");
-		TwAddVarRW(bar, "fSplitWeight", TW_TYPE_FLOAT, &CascadedShadows->fSplitWeight, " group='Shadows' step=0.01 label='Split Weight' ");
+		TwAddVarRW(bar, "fSplitWeight", TW_TYPE_FLOAT, &CascadedShadows->fSplitWeight, " group='Shadows' max=1 step=0.01 label='Split Weight' ");
 		TwAddVarRW(bar, "fShadowFoV", TW_TYPE_FLOAT, &CascadedShadows->fFoV, " group='Shadows' min=1 max=220 step=0.1 label='Field of View' ");
 		TwDefine(" RenderEdge/'Shadows' opened=false");
 	}
@@ -886,13 +863,6 @@ void CAntTweakBar::OnResetDevice()
 	TwAddVarRW(bar, "vFogSunColor", TW_TYPE_COLOR3F, &g_vFogSunColor, " group='Fog' label='Sun Color' ");
 	TwAddVarRW(bar, "fFogSunIntensity", TW_TYPE_FLOAT, &g_fFogSunIntensity, " group='Fog' min=2 max=64 step=0.1 label='Sun Intensity' ");
 	TwAddVarRW(bar, "fFogSunStartDistance", TW_TYPE_FLOAT, &g_fFogSunStartDistance, " group='Fog' min=0 step=0.1 label='Sun Start Distance' ");
-	/*TwAddSeparator(bar, "", " group='Fog' ");
-	TwAddVarRW(bar, "mBetaRs", TW_TYPE_FLOAT, &mBetaRs, " group='Fog' min=0 step=0.1 label='Rayleigh Scattering' ");
-	TwAddVarRW(bar, "mBetaMs", TW_TYPE_FLOAT, &mBetaMs, " group='Fog' min=0 step=0.1 label='Mie Scattering' ");
-	TwAddVarRW(bar, "mBetaMa", TW_TYPE_FLOAT, &mBetaMa, " group='Fog' min=0 step=0.1 label='Mie Absorption' ");
-	TwAddVarRW(bar, "mMieAsymmetry", TW_TYPE_FLOAT, &mMieAsymmetry, " group='Fog' min=0 max=1 step=0.01 label='Mie Asymmetry' ");
-	TwAddVarRW(bar, "mAlbedoR", TW_TYPE_COLOR3F, &mAlbedoR, " group='Fog' label='Rayleigh Color' ");
-	TwAddVarRW(bar, "mAlbedoM", TW_TYPE_COLOR3F, &mAlbedoM, " group='Fog' label='Mie Color' ");*/
 	TwDefine(" RenderEdge/'Fog' opened=false");
 
 	TwAddSeparator(bar, "", "");
@@ -1000,12 +970,12 @@ void CAntTweakBar::OnResetDevice()
 		TwAddVarRW(bar, "bBloom", TW_TYPE_BOOLCPP, &PostProcessing->bBloom, " group='Bloom' label='Enabled' ");
 		TwAddVarRW(bar, "fBloomTreshhold", TW_TYPE_FLOAT, &PostProcessing->fBloomThreshold, " group='Bloom' min=-1 step=0.01 label='Treshhold' ");
 		TwAddVarRW(bar, "fBloomIntensity", TW_TYPE_FLOAT, &PostProcessing->fBloomIntensity, " group='Bloom' min=0 step=0.01 label='Intensity' ");
-		TwAddVarRW(bar, "fBloomRadius", TW_TYPE_FLOAT, &PostProcessing->fBloomRadius, " group='Bloom' min=1 max=10 step=0.01 label='Radius' ");
+		TwAddVarRW(bar, "iBloomPasses", TW_TYPE_UINT16, &PostProcessing->iBloomPasses, " group='Bloom' min=2 max=10 label='Passes' ");
 		TwAddVarRW(bar, "fBloomAnamorphicRatio", TW_TYPE_FLOAT, &PostProcessing->fBloomAnamorphicRatio, " group='Bloom' min=-1 max=1 step=0.01 label='Anamorphic Ratio' ");
 		TwAddSeparator(bar, "", " group='Bloom' ");
 		TwAddVarRW(bar, "bDirtMask", TW_TYPE_BOOLCPP, &PostProcessing->bLensDirt, " group='Bloom' label='Lens Dirt' ");
 		TwAddVarRW(bar, "fLensDirtIntensity", TW_TYPE_FLOAT, &PostProcessing->fLensDirtIntensity, " group='Bloom' min=0 step=0.01 label='Intensity' ");
-		TwAddVarRW(bar, "BloomSizeScale", TW_TYPE_FLOAT, &PostProcessing->BloomSizeScale, " group='Bloom Advanced' min=1 step=0.01 label='BloomSizeScale' ");
+		/*TwAddVarRW(bar, "BloomSizeScale", TW_TYPE_FLOAT, &PostProcessing->BloomSizeScale, " group='Bloom Advanced' min=1 step=0.01 label='BloomSizeScale' ");
 		TwAddVarRW(bar, "Bloom1Size", TW_TYPE_FLOAT, &PostProcessing->Bloom1Size, " group='Bloom Advanced' min=0.3 step=1.0 precision=2 label='Bloom1Size' ");
 		TwAddVarRW(bar, "Bloom1Tint", TW_TYPE_COLOR3F, &PostProcessing->Bloom1Tint, " group='Bloom Advanced' label='Bloom1Tint' ");
 		TwAddVarRW(bar, "Bloom2Size", TW_TYPE_FLOAT, &PostProcessing->Bloom2Size, " group='Bloom Advanced' min=1 step=1.0 precision=2 label='Bloom2Size' ");
@@ -1018,7 +988,7 @@ void CAntTweakBar::OnResetDevice()
 		TwAddVarRW(bar, "Bloom5Tint", TW_TYPE_COLOR3F, &PostProcessing->Bloom5Tint, " group='Bloom Advanced' label='Bloom5Tint' ");
 		TwAddVarRW(bar, "Bloom6Size", TW_TYPE_FLOAT, &PostProcessing->Bloom6Size, " group='Bloom Advanced' min=1 step=1.0 precision=2 label='Bloom6Size' ");
 		TwAddVarRW(bar, "Bloom6Tint", TW_TYPE_COLOR3F, &PostProcessing->Bloom6Tint, " group='Bloom Advanced' label='Bloom6Tint' ");
-		TwDefine(" RenderEdge/'Bloom Advanced' group='Bloom' opened=false label='Advanced'");
+		TwDefine(" RenderEdge/'Bloom Advanced' group='Bloom' opened=false label='Advanced'");*/
 		TwDefine(" RenderEdge/'Bloom' group='Post Effect' opened=false");
 
 		TwAddVarRW(bar, "bSSAO", TW_TYPE_BOOLCPP, &PostProcessing->bSSAO, " group='Ambient Occlusion' label='Enabled'");
@@ -1104,9 +1074,8 @@ CEngine* Engine = nullptr;
 
 CEngine::CEngine(IDirect3DDevice9* pDevice)
 {
-	LOG(INFO) << "========= On Create Engine ============";
+	LOG(DEBUG) << "========= On Create Engine ============";
 	LOG(INFO) << RenderEdgeVersion;
-	//LOG(INFO) << "WarCraft III build " << static_cast<uint32>(GetGameVersion());
 
 	m_pDevice = pDevice;
 	bMapInit = false;
@@ -1115,7 +1084,7 @@ CEngine::CEngine(IDirect3DDevice9* pDevice)
 
 CEngine::~CEngine()
 {
-	LOG(INFO) << "========= On Destroy Engine ===========\n\n";
+	LOG(DEBUG) << "========= On Destroy Engine ===========\n\n";
 
 	Release();
 }
@@ -1131,6 +1100,7 @@ void CEngine::Release()
 	SAFE_DELETE(ResourceManager);
 	SAFE_DELETE(FontManager);
 	SAFE_DELETE(TextureManager);
+	SAFE_DELETE(SystemTextures);
 	SAFE_DELETE(CascadedShadows);
 	SAFE_DELETE(FreeCamera);
 	SAFE_DELETE(PostProcessing);
@@ -1140,32 +1110,72 @@ void CEngine::Release()
 }
 
 
-
-bool CEngine::ReadConfigFile()
+void CEngine::GetBackBufferSize()
 {
-	// Set folder for search local files 
-	char oldBasePath[MAX_PATH];
-	if (CResourceManager::bAllowLocalFiles)
+	IDirect3DSurface9* pSurface;
+	D3DSURFACE_DESC desc;
+
+	m_pDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pSurface);
+	pSurface->GetDesc(&desc);
+	pSurface->Release();
+
+	g_vBufferSize = D3DXVECTOR4(
+		desc.Width,
+		desc.Height,
+		1.0f / desc.Width,
+		1.0f / desc.Height);
+}
+
+void CEngine::GetSupportedDepthFormat()
+{
+	D3DDISPLAYMODE currentDisplayMode;
+	IDirect3D9* d3d = nullptr;
+	m_pDevice->GetDirect3D(&d3d);
+	d3d->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &currentDisplayMode);
+
+	//bool isRESZ = d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_RENDERTARGET, D3DRTYPE_SURFACE, (D3DFORMAT)ETextureFormat::RESZ) == D3D_OK;
+	bool isINTZ = d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, (D3DFORMAT)ETextureFormat::INTZ) == D3D_OK;
+	bool isRAWZ = d3d->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, (D3DFORMAT)ETextureFormat::RAWZ) == D3D_OK;
+
+	d3d->Release();
+
+	if (isRAWZ || isINTZ)
+		g_depthFormat = isINTZ ? ETextureFormat::INTZ : ETextureFormat::RAWZ;
+	else
+		Message("INTZ and RAWZ depth formats are not supported", "GetSupportedDepthFormat");
+}
+
+void CEngine::OnFrameRenderingSetup(uint32 SampleCount)
+{
+	if (PostProcessing)
 	{
-		Storm::GetBasePath(oldBasePath, sizeof(oldBasePath));
-		Storm::SetBasePath(RenderEdgePath.c_str());
+		PostProcessing->iTemporalAASampleIndex++;
+		g_iFrameIndexMod8 = (g_iFrameIndexMod8 + 1) % 8;
+
+		if (PostProcessing->iTemporalAASampleIndex >= SampleCount)
+			PostProcessing->iTemporalAASampleIndex = 0;
 	}
+}
 
+bool CEngine::ReadConfigFile(const std::string& fileName)
+{
 	INIReader ConfigINI;
-	const std::string fileName = "RenderEdge.ini";
 
-	BUFFER buffer;
-	if (MPQ::LoadFile(0, fileName, buffer))
-		ConfigINI.Open(buffer.GetData());
+	if (utils::FileExists(RenderEdgePath + fileName))
+	{
+		ConfigINI.Open(RenderEdgePath + fileName);
+	}
+	else
+	{
+		BUFFER buffer;
+		if (MPQ::LoadFile(0, fileName, buffer))
+			ConfigINI.Open(buffer.GetData());
+	}
 
 	if (!ConfigINI.Success())
 	{
 		LOG(ERROR) << "Failed to load config file: " << fileName;
 		Message("Failed to load config file:\n" + fileName);
-
-		// Reset base path
-		if (CResourceManager::bAllowLocalFiles)
-			Storm::SetBasePath(oldBasePath);
 
 		return false;
 	}
@@ -1184,7 +1194,7 @@ bool CEngine::ReadConfigFile()
 	if (bVSync != g_bVsyncEnabled)
 	{
 		g_bVsyncEnabled = bVSync;
-		g_bResetDevice = true;
+		ForceResetDevice8();
 	}
 
 	// Camera
@@ -1218,6 +1228,7 @@ bool CEngine::ReadConfigFile()
 	ConfigINI.GetBool("RenderStage", "bOcclusionMask", RenderingHook::bRenderOcclusionMask);
 	ConfigINI.GetBool("RenderStage", "bLightning", RenderingHook::bRenderLightning);
 	ConfigINI.GetBool("RenderStage", "bFloatingText", RenderingHook::bRenderFloatingText);
+	ConfigINI.GetBool("RenderStage", "bCineFilter", RenderingHook::bRenderCineFilter);
 	ConfigINI.GetBool("RenderStage", "bUserInterface", g_bUserInterface);
 	ConfigINI.GetBool("RenderStage", "bCustomUserInterface", g_bCustomUserInterface);
 
@@ -1228,7 +1239,6 @@ bool CEngine::ReadConfigFile()
 	ConfigINI.GetColor("Lighting", "SkyLight.AmbColor", g_vAmbColor);
 	ConfigINI.GetColor("Lighting", "SkyLight.SkyColor", g_vSkyColor);
 	ConfigINI.GetColor("Lighting", "SkyLight.IndColor", g_vIndColor);
-	ConfigINI.GetFloat("Lighting", "SkyLight.BlendFactor", g_fSkyLightBlendFactor);
 	ConfigINI.GetFloat("Lighting", "SkyLight.Intensity", g_fSkyLightIntensity);
 
 	ConfigINI.GetBool("Lighting", "DirectionalLight.bDefaultColor", g_bDefaultLightColor);
@@ -1396,7 +1406,7 @@ bool CEngine::ReadConfigFile()
 		ConfigINI.GetBool("PostProcess", "Bloom.bEnabled", PostProcessing->bBloom);
 		ConfigINI.GetFloat("PostProcess", "Bloom.Treshhold", PostProcessing->fBloomThreshold);
 		ConfigINI.GetFloat("PostProcess", "Bloom.Intensity", PostProcessing->fBloomIntensity);
-		ConfigINI.GetFloat("PostProcess", "Bloom.Radius", PostProcessing->fBloomRadius);
+		ConfigINI.GetUInt("PostProcess", "Bloom.Passes", PostProcessing->iBloomPasses);
 		ConfigINI.GetFloat("PostProcess", "Bloom.AnamorphicRatio", PostProcessing->fBloomAnamorphicRatio);
 
 		ConfigINI.GetBool("PostProcess", "Bloom.bLensDirt", PostProcessing->bLensDirt);
@@ -1445,10 +1455,6 @@ bool CEngine::ReadConfigFile()
 	ConfigINI.GetUInt("Hotkeys", "PauseGame", hotkey_PauseGame);
 	ConfigINI.GetUInt("Hotkeys", "TakeScreenshot", hotkey_TakeScreenshot);
 
-	// Reset base path
-	if (CResourceManager::bAllowLocalFiles)
-		Storm::SetBasePath(oldBasePath);
-
 	return true;
 }
 
@@ -1467,20 +1473,20 @@ void CEngine::TakeScreenshot()
 		GetSystemTime(&time);
 
 		std::ostringstream filePath;
-		filePath << RenderEdgePath << "Screenshots\\RenderEdge_"
+		filePath << std::right << std::setfill('0')
+			<< RenderEdgePath << "Screenshots\\RenderEdge_"
 			<< std::setw(2) << time.wMonth
 			<< std::setw(2) << time.wDay
 			<< std::setw(2) << time.wYear % 100 << '_'
 			<< std::setw(2) << time.wHour
 			<< std::setw(2) << time.wMinute
 			<< std::setw(2) << time.wSecond << '_'
-			<< std::setw(2) << screenshotNumber;
+			<< std::setw(2) << screenshotNumber << ".png";
 
 		D3DXSaveSurfaceToFileA(filePath.str().c_str(), D3DXIFF_PNG, pRenderTarget, nullptr, nullptr);
 		pRenderTarget->Release();
 	}
 }
-
 
 
 void CEngine::InitTemporaryResources()
@@ -1500,9 +1506,30 @@ void CEngine::ReleaseTemporaryResources()
 	g_depthRT.Release();
 	g_normalTexture.Release();
 	g_envTexture.Release();
+}
 
-	//SAFE_RELEASE(g_pRenderToEnvMap);
-	//SAFE_RELEASE(g_pEnvProbeCubeTexture);
+void CEngine::ReloadShaders()
+{
+	if (ResourceManager)
+	{
+		SAFE_RELEASE(g_pStandardFX);
+		ResourceManager->LoadShader("Shaders\\Standard.cso", nullptr, &g_pStandardFX);
+
+		SAFE_RELEASE(g_pSkyboxFX);
+		ResourceManager->LoadShader("Shaders\\Skybox.cso", nullptr, &g_pSkyboxFX);
+
+		if (CascadedShadows)
+		{
+			SAFE_RELEASE(CascadedShadows->m_pEffect);
+			ResourceManager->LoadShader("Shaders\\Shadows.cso", nullptr, &CascadedShadows->m_pEffect);
+		}
+
+		if (PostProcessing)
+		{
+			SAFE_RELEASE(PostProcessing->m_pEffect);
+			ResourceManager->LoadShader("Shaders\\PostProcess.cso", nullptr, &PostProcessing->m_pEffect);
+		}
+	}
 }
 
 void CEngine::OnCreateDevice()
@@ -1510,9 +1537,9 @@ void CEngine::OnCreateDevice()
 	start_time = std::chrono::high_resolution_clock::now();
 	last_frame_duration = std::chrono::milliseconds(1);
 
-	GetBackBufferSize(m_pDevice);
-	UpdateWidescreenFix(g_vBufferSize.x, g_vBufferSize.y);
-	GetSupportedDepthFormat(m_pDevice);
+	GetBackBufferSize();
+	UpdateWidescreenFix(g_vBufferSize.x * g_vBufferSize.w);
+	GetSupportedDepthFormat();
 
 	const std::string mpqPath = RenderEdgePath + "RenderEdge.mpq";
 	if (!MPQ::OpenArchive(mpqPath, &mpqRenderEdge))
@@ -1525,17 +1552,10 @@ void CEngine::OnCreateDevice()
 	AntTweakBar = new CAntTweakBar(m_pDevice);
 	FontManager = new CFontManager(m_pDevice);
 	TextureManager = new CTextureManager(m_pDevice);
+	SystemTextures = new CSystemTextures(m_pDevice);
 	CustomUI = new CGUI(m_pDevice);
 
-	ReadConfigFile();
-
 	D3DXCreateFontW(m_pDevice, 0, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Arial", &g_pFont);
-
-	//if (FAILED(D3DXCreateRenderToEnvMap(m_pDevice, ENVMAPSIZE, 1, D3DFMT_A8R8G8B8, TRUE, D3DFMT_D16, &g_pRenderToEnvMap)))
-	//	Message("Failed to create g_pRenderToEnvMap");
-	//
-	//if (FAILED(m_pDevice->CreateCubeTexture(ENVMAPSIZE, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &g_pEnvProbeCubeTexture, nullptr)))
-	//	Message("Failed to create g_pEnvProbeCubeTexture");
 
 	InitTemporaryResources();
 
@@ -1544,6 +1564,8 @@ void CEngine::OnCreateDevice()
 		ResourceManager->LoadShader("Shaders\\Standard.cso", nullptr, &g_pStandardFX);
 		ResourceManager->LoadShader("Shaders\\Skybox.cso", nullptr, &g_pSkyboxFX);
 	}
+
+	ReadConfigFile("RenderEdge.ini");
 }
 
 void CEngine::OnLostDevice()
@@ -1569,13 +1591,16 @@ void CEngine::OnLostDevice()
 	if (CustomUI)
 		CustomUI->OnLostDevice();
 
+	if (SystemTextures)
+		SystemTextures->OnLostDevice();
+
 	ReleaseTemporaryResources();
 }
 
 void CEngine::OnResetDevice()
 {
-	GetBackBufferSize(m_pDevice);
-	UpdateWidescreenFix(g_vBufferSize.x, g_vBufferSize.y);
+	GetBackBufferSize();
+	UpdateWidescreenFix(g_vBufferSize.x * g_vBufferSize.w);
 
 	if (AntTweakBar)
 		AntTweakBar->OnResetDevice();
@@ -1598,9 +1623,11 @@ void CEngine::OnResetDevice()
 	if (CustomUI)
 		CustomUI->OnResetDevice();
 
+	if (SystemTextures)
+		SystemTextures->OnResetDevice();
+
 	InitTemporaryResources();
 }
-
 
 
 void CEngine::OnGameState()
@@ -1634,7 +1661,7 @@ void CEngine::OnMapStart()
 
 		// Reload config file from map
 		if (listFile.find("RenderEdge.ini") != -1)
-			ReadConfigFile();
+			ReadConfigFile("RenderEdge.ini");
 
 		// Reload Shaders
 		if (ResourceManager)
@@ -1691,108 +1718,12 @@ void CEngine::OnMapEnd()
 {
 	LOG(DEBUG) << "========= On Map End ==================";
 
-	CustomUI->Release();
+	if (CustomUI)
+		CustomUI->Release();
 
+	g_bMapLoaded = false;
 	ClearExecuteTriggers();
 }
-
-
-
-double GetTime()
-{
-	auto beginningOfTime = std::chrono::system_clock::now().time_since_epoch();
-	auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(beginningOfTime).count();
-
-	return ms * 0.001;
-}
-
-void CalculateFrameRate()
-{
-	static double framesPerSecond = 0.0;
-	static double startTime = GetTime();
-	static double lastTime = GetTime();
-	static double currentFPS = 0.0;
-
-	double CurrentTime = GetTime();
-
-	g_fDeltaTime = CurrentTime - lastTime;
-	lastTime = CurrentTime;
-	++framesPerSecond;
-
-	if (CurrentTime - startTime > 1.0)
-	{
-		startTime = CurrentTime;
-		g_fFPS = framesPerSecond;
-		framesPerSecond = 0;
-	}
-}
-
-
-
-const D3DXMATRIX& BuildViewMatrix(const D3DXVECTOR3& Translation, const D3DXVECTOR4& Rotation)
-{
-	const D3DXVECTOR3 Scale3D = D3DXVECTOR3(1.0f, 1.0f, 1.0f);
-
-	D3DXMATRIX OutMatrix;
-
-	OutMatrix.m[3][0] = Translation.x;
-	OutMatrix.m[3][1] = Translation.y;
-	OutMatrix.m[3][2] = Translation.z;
-
-	const float x2 = Rotation.x + Rotation.x;
-	const float y2 = Rotation.y + Rotation.y;
-	const float z2 = Rotation.z + Rotation.z;
-	{
-		const float xx2 = Rotation.x * x2;
-		const float yy2 = Rotation.y * y2;
-		const float zz2 = Rotation.z * z2;
-
-		OutMatrix.m[0][0] = (1.0f - (yy2 + zz2)) * Scale3D.x;
-		OutMatrix.m[1][1] = (1.0f - (xx2 + zz2)) * Scale3D.y;
-		OutMatrix.m[2][2] = (1.0f - (xx2 + yy2)) * Scale3D.z;
-	}
-	{
-		const float yz2 = Rotation.y * z2;
-		const float wx2 = Rotation.w * x2;
-
-		OutMatrix.m[2][1] = (yz2 - wx2) * Scale3D.z;
-		OutMatrix.m[1][2] = (yz2 + wx2) * Scale3D.y;
-	}
-	{
-		const float xy2 = Rotation.x * y2;
-		const float wz2 = Rotation.w * z2;
-
-		OutMatrix.m[1][0] = (xy2 - wz2) * Scale3D.y;
-		OutMatrix.m[0][1] = (xy2 + wz2) * Scale3D.x;
-	}
-	{
-		const float xz2 = Rotation.x * z2;
-		const float wy2 = Rotation.w * y2;
-
-		OutMatrix.m[2][0] = (xz2 + wy2) * Scale3D.z;
-		OutMatrix.m[0][2] = (xz2 - wy2) * Scale3D.x;
-	}
-
-	OutMatrix.m[0][3] = 0.0f;
-	OutMatrix.m[1][3] = 0.0f;
-	OutMatrix.m[2][3] = 0.0f;
-	OutMatrix.m[3][3] = 1.0f;
-
-	return OutMatrix;
-}
-
-void OnFrameRenderingSetup(uint32 SampleCount)
-{
-	if (PostProcessing)
-	{
-		PostProcessing->iTemporalAASampleIndex++;
-		g_iFrameIndexMod8 = (g_iFrameIndexMod8 + 1) % 8;
-
-		if (PostProcessing->iTemporalAASampleIndex >= SampleCount)
-			PostProcessing->iTemporalAASampleIndex = 0;
-	}
-}
-
 
 
 void CEngine::UpdateLightAndFog()
@@ -1835,9 +1766,9 @@ void CEngine::UpdateLightAndFog()
 				const D3DXVECTOR3 pos = D3DXVECTOR3(*(float*)(pLightData - 8), *(float*)(pLightData - 4), *(float*)(pLightData));
 				const float intensity = *(float*)(pLightData + 16) * fIntensityMul;
 
-				FVector linearColor = g_bPointLightColorSRGB ? FVector::ColorToLinear(color) : color;
-				g_vPointLightColorAndIntensity[index] = FVector(linearColor, intensity);
-				g_vPointLightPosAndInvRadius[index] = FVector(pos, fInvRadius);
+				FColor linearColor = g_bPointLightColorSRGB ? FColor::ToLinear(color) : color;
+				g_vPointLightColorAndIntensity[index] = FColor(linearColor, intensity);
+				g_vPointLightPosAndInvRadius[index] = FColor(pos, fInvRadius);
 
 				index++;
 				g_iPointLightCount++;
@@ -1847,8 +1778,8 @@ void CEngine::UpdateLightAndFog()
 			{
 				const float lightIntensity = *(float*)(pLightData + 16);
 				const float ambientIntensity = *(float*)(pLightData + 12);
-				FVector lightColor = FVector(*(BYTE*)(pLightData + 10), *(BYTE*)(pLightData + 9), *(BYTE*)(pLightData + 8)) / 255.0f;
-				FVector ambientColor = FVector(*(BYTE*)(pLightData + 6), *(BYTE*)(pLightData + 5), *(BYTE*)(pLightData + 4)) / 255.0f;
+				FColor lightColor = FColor(*(BYTE*)(pLightData + 10), *(BYTE*)(pLightData + 9), *(BYTE*)(pLightData + 8)) / 255.0f;
+				FColor ambientColor = FColor(*(BYTE*)(pLightData + 6), *(BYTE*)(pLightData + 5), *(BYTE*)(pLightData + 4)) / 255.0f;
 
 				if (g_bLightColorSRGB)
 					lightColor.ToLinear();
@@ -1868,7 +1799,7 @@ void CEngine::UpdateLightAndFog()
 		DWORD dwFogMode = ((DWORD*)address_dwSceneSettings1)[*(DWORD*)(pGxDevice + 884)];
 		DWORD dwFogColor = *(DWORD*)(pGxDevice + 900);
 
-		FVector linearColor = D3DXVECTOR3(GetBValue(dwFogColor) / 255.0f, GetGValue(dwFogColor) / 255.0f, GetRValue(dwFogColor) / 255.0f);
+		FColor linearColor = D3DXVECTOR3(GetBValue(dwFogColor) / 255.0f, GetGValue(dwFogColor) / 255.0f, GetRValue(dwFogColor) / 255.0f);
 		if (g_bFogColorSRGB)
 			linearColor.ToLinear();
 		g_vGlobalFogColor = linearColor;
@@ -1937,14 +1868,13 @@ void CEngine::UpdateLightAndFog()
 
 	// Sky and Directional Light
 	g_pStandardFX->SetBool("g_bSkyLight", g_bSkyLight && !g_bDefaultAmbientColor);
-	g_pStandardFX->SetFloat("g_fSkyLightBlendFactor", g_fSkyLightBlendFactor);
 	g_pStandardFX->SetFloat("g_fSkyLightIntensity", g_fSkyLightIntensity);
 	g_pStandardFX->SetValue("g_vSkyColor", &g_vSkyColor, sizeof(g_vSkyColor));
 	g_pStandardFX->SetValue("g_vIndColor", &g_vIndColor, sizeof(g_vIndColor));
 	g_pStandardFX->SetValue("g_vAmbColor", g_bDefaultAmbientColor ? &g_vGlobalAmbientColor : &g_vAmbColor, sizeof(D3DXVECTOR3));
 	g_pStandardFX->SetValue("g_vLightDir", g_bDefaultLightDir ? &g_vGlobalLightDir : &g_vLightDir, sizeof(D3DXVECTOR3));
-	FVector lightColor = g_bDefaultLightColor ? g_vGlobalLightColor : FVector(g_vLightColor) * (g_bUseTemperature ? FVector::ColorFromTemperature(g_fLightTemperature) : 1.0f);
-	lightColor *= g_fLightIntensity;// / (lightColor.r * 0.212671f + lightColor.g * 0.715160f + lightColor.b * 0.072169f);
+	FColor lightColor = g_bDefaultLightColor ? g_vGlobalLightColor : FColor(g_vLightColor) * (g_bUseTemperature ? FColor::FromTemperature(g_fLightTemperature) : 1.0f);
+	lightColor *= g_fLightIntensity;
 	g_pStandardFX->SetValue("g_vLightColor", &lightColor, sizeof(D3DXVECTOR3));
 
 	// Point Light
@@ -2046,85 +1976,12 @@ void CEngine::OnCalcSceneView_after()
 }
 
 
-//void RenderScene(IDirect3DDevice9* pDevice, D3DXMATRIX mView, D3DXMATRIX mProj)
-//{
-//	g_pStandardFX->SetTechnique("Standard");
-//
-//	uint32 uPasses = 0;
-//	g_pStandardFX->Begin(&uPasses, 0);
-//	for (uint32 uPass = 0; uPass < uPasses; uPass++)
-//	{
-//		g_pStandardFX->BeginPass(uPass);
-//
-//		//=============== Render Scene ==================
-//		pDevice->SetVertexDeclaration(g_pVertexDecl);
-//
-//		for (auto& mesh : terrainMeshes)
-//		{
-//			g_pStandardFX->SetMatrix("g_mWorld", &mesh->m_mWorld);
-//			g_pStandardFX->SetMatrix("g_mWorldViewProjection", &(mesh->m_mWorld * mView * mProj));
-//			//g_pStandardFX->SetTexture("g_albedoTexture", mesh->m_Texture);
-//			pDevice->SetTexture(0, mesh->m_Texture);
-//			g_pStandardFX->CommitChanges();
-//			mesh->Render(pDevice);
-//		}
-//		for (auto& mesh : unitMeshes)
-//		{
-//			g_pStandardFX->SetMatrix("g_mWorldViewProjection", &(mesh->m_mWorld * mView * mProj));
-//			//g_pStandardFX->SetTexture("g_albedoTexture", mesh->m_Texture);
-//			pDevice->SetTexture(0, mesh->m_Texture);
-//			g_pStandardFX->CommitChanges();
-//			mesh->Render(pDevice);
-//		}
-//		//===============================================
-//
-//		g_pStandardFX->EndPass();
-//	}
-//	g_pStandardFX->End();
-//
-//	pDevice->SetTexture(0, nullptr);
-//}
-//
-//void RenderSceneIntoCubeMap(IDirect3DDevice9* pDevice, EnvProbe probe)
-//{
-//	//D3DXMATRIX matProjSave(g_mProj), matViewSave(g_mView);
-//	D3DXMATRIX cubeProj;
-//	D3DXMatrixPerspectiveFovLH(&cubeProj, D3DX_PI * 0.5f, 1.0f, 1.0f, probe.Radius);
-//	//g_mProj = cubeProj;
-//
-//	g_pRenderToEnvMap->BeginCube(g_pEnvProbeCubeTexture);
-//
-//	for (uint32 i = 0; i < 6; i++)
-//	{
-//		g_pRenderToEnvMap->Face((D3DCUBEMAP_FACES)i, 0);
-//		D3DXMATRIX cubeFaceView = GetCubeMapViewMatrix((D3DCUBEMAP_FACES)i, probe.Pos);
-//		//g_mView = cubeFaceView;
-//		pDevice->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0x00000000, 1.0f, 0);
-//
-//		pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
-//		pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-//		pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-//
-//		RenderScene(pDevice, cubeFaceView, cubeProj);
-//
-//		pDevice->SetRenderState(D3DRS_CULLMODE, D3DCULL_CW);
-//		pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-//		pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-//	}
-//
-//	g_pRenderToEnvMap->End(0);
-//
-//	//g_mProj = matProjSave;
-//	//g_mView = matViewSave;
-//}
-
-
 void CEngine::OnBeginScene()
 {
 	// Reset values
 	g_bPostProcessRendered = false;
 	g_bSceneUpdated = false;
-	RenderingHook::iCurrentRenderStage = ERenderStage::MainMenuUI;
+	RenderingHook::iCurrentRenderStage = ERenderStage::Unknown;
 
 	g_iPointLightCount = 0;
 
@@ -2139,7 +1996,7 @@ void CEngine::OnBeginScene()
 	m_pDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER, 0x00000000, 1.0f, 0);
 
 	// Set HDR render target
-	if (g_bEnableHDR && !g_bDefaultRenderer && !g_bHDRStarted && IsGaming())
+	if (g_bEnableHDR && !g_bDefaultRenderer && !g_bHDRStarted && IsGaming() && g_bMapLoaded)
 	{
 		g_bHDRStarted = true;
 
@@ -2159,15 +2016,6 @@ void CEngine::OnBeginScene()
 		pStateBlock->Apply();
 		pStateBlock->Release();
 	}
-
-	/*if (g_bRenderEnvMap)
-	{
-		RenderSceneIntoCubeMap(m_pDevice, BaseEnv);
-		D3DXSaveTextureToFile("cube.dds", D3DXIFF_DDS, g_pEnvProbeCubeTexture, nullptr);
-		g_bRenderEnvMap = false;
-	}*/
-
-	//RenderScene(m_pDevice, g_mView, g_mProj);
 
 	// Release hooked meshes
 	if (CascadedShadows)
@@ -2208,18 +2056,6 @@ void CEngine::OnPresent()
 	// Render helper UI
 	if (m_pDevice->BeginScene() == D3D_OK)
 	{
-		// TODO: Move this to the OnRenderUI function
-		if (CustomUI && g_bCustomUserInterface)
-		{
-			IDirect3DStateBlock9* pStateBlock = nullptr;
-			m_pDevice->CreateStateBlock(D3DSBT_ALL, &pStateBlock);
-
-			CustomUI->Render();
-
-			pStateBlock->Apply();
-			pStateBlock->Release();
-		}
-
 		// Render AntTweakBar
 		if (AntTweakBar)
 			AntTweakBar->Render();
@@ -2237,22 +2073,10 @@ void CEngine::OnPresent()
 		TakeScreenshot();
 		g_bTakeScreenshot = false;
 	}
-
-	if (g_bResetDevice)
-	{
-		IDirect3DStateBlock9* pStateBlock = nullptr;
-		m_pDevice->CreateStateBlock(D3DSBT_PIXELSTATE, &pStateBlock);
-
-		ResetDevice();
-		g_bResetDevice = false;
-
-		pStateBlock->Apply();
-		pStateBlock->Release();
-	}
 }
 
 
-void CEngine::OnRenderWorld_before()
+void CEngine::OnRenderWorld()
 {
 	// Load textures if nessesary
 	if (g_bIBL)
@@ -2263,8 +2087,9 @@ void CEngine::OnRenderWorld_before()
 		if (ResourceManager && g_normalTexture.IsEmpty())
 			ResourceManager->LoadTexture2D(g_normalTextureFileName, &g_normalTexture);
 
-	/*if (ResourceManager && envTexture.IsEmpty())
-		ResourceManager->LoadTexture2D("Textures\\HDR\\simons_town_rocks_2k.hdr", &envTexture);
+	/*static Texture2D envTexture;
+	if (ResourceManager && envTexture.IsEmpty())
+		ResourceManager->LoadTexture2D("Textures\\HDR\\fireplace_2k.hdr", &envTexture);
 	g_pStandardFX->SetTexture("g_envTexture2", envTexture.GetTexture());
 	g_pSkyboxFX->SetTexture("g_envTexture2", envTexture.GetTexture());*/
 
@@ -2275,18 +2100,20 @@ void CEngine::OnRenderWorld_before()
 	g_pStandardFX->SetFloat("g_fCubemapBrightness", g_fCubemapBrightness);
 	g_pStandardFX->SetBool("g_bEnvCubemapSwapYZ", g_bEnvCubemapSwapYZ);
 	g_pStandardFX->SetTexture("g_envTexture", g_envTexture.GetTexture());
+	if (SystemTextures)
+		g_pStandardFX->SetTexture("g_preIntegratedGFTexture", SystemTextures->preIntegratedGFRT.GetTexture());
 
 	// Shadows
 	if (CascadedShadows)
 	{
 		g_pStandardFX->SetBool("g_bSoftShadows", CascadedShadows->bSoftShadows);
 		g_pStandardFX->SetBool("g_bVisCascades", CascadedShadows->bVisCascades);
-		g_pStandardFX->SetValue("g_vCascades", CascadedShadows->far_bound, sizeof(CascadedShadows->far_bound));
+		g_pStandardFX->SetValue("g_vCascades", CascadedShadows->splitDepths, sizeof(CascadedShadows->splitDepths));
 		g_pStandardFX->SetValue("g_mShadow", CascadedShadows->mShadow, sizeof(CascadedShadows->mShadow));
 		g_pStandardFX->SetFloat("g_fSoftTransitionScale", CascadedShadows->fSoftTransitionScale);
 		g_pStandardFX->SetFloat("g_fShadowSharpen", CascadedShadows->fShadowSharpen);
 		g_pStandardFX->SetFloat("g_fRadius", CascadedShadows->fRadius);
-		g_pStandardFX->SetFloat("g_fShadowTexelSize", 1.0f / CascadedShadows->iShadowMapSize);
+		g_pStandardFX->SetValue("g_vShadowBufferSize", CascadedShadows->vShadowBufferSize, sizeof(CascadedShadows->vShadowBufferSize));
 		g_pStandardFX->SetFloat("g_fShadowPartitionSize", 1.0f / NUM_CASCADES);
 		g_pStandardFX->SetTexture("g_shadowTexture", CascadedShadows->GetTexture());
 	}
@@ -2302,13 +2129,24 @@ void CEngine::OnRenderWorld_before()
 	}
 }
 
-void CEngine::OnRenderWorld_after()
+void CEngine::OnRenderUI()
 {
+	if (!g_bMapLoaded)
+		g_bMapLoaded = true;
 
+	if (CustomUI && g_bCustomUserInterface)
+	{
+		IDirect3DStateBlock9* pStateBlock = nullptr;
+		m_pDevice->CreateStateBlock(D3DSBT_ALL, &pStateBlock);
+
+		CustomUI->Render();
+
+		pStateBlock->Apply();
+		pStateBlock->Release();
+	}
 }
 
 
-//Texture2D envTexture;
 HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 baseVertexIndex, uint32 minIndex, uint32 numVertices, uint32 startIndex, uint32 primitiveCount, uint32 stride, IDirect3DTexture9* currentTexture)
 {
 	const ERenderStage curRenderStage = RenderingHook::GetRenderStage();
@@ -2380,9 +2218,9 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 			D3DMATERIAL9 material;
 			m_pDevice->GetMaterial(&material);
 			bool bEmissive = (material.Emissive.r != 0.0f || material.Emissive.g != 0.0f || material.Emissive.b != 0.0f || material.Emissive.a != 0.0f);
-			FVector matDiffuse = bEmissive ? material.Emissive : material.Diffuse;
+			FColor matDiffuse = bEmissive ? material.Emissive : material.Diffuse;
 			if (g_bMaterialColorSRGB) matDiffuse.ToLinear();
-			g_pSkyboxFX->SetValue("g_vMaterialDiffuse", &matDiffuse, sizeof(FVector));
+			g_pSkyboxFX->SetValue("g_vMaterialDiffuse", &matDiffuse, sizeof(FColor));
 			g_pSkyboxFX->SetFloat("g_fBrightness", g_fSkyboxLightIntensity);
 
 			// Fog
@@ -2403,17 +2241,13 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 			g_pSkyboxFX->SetValue("mAmbColor", &g_vFogColor, sizeof(g_vFogColor));*/
 
 			// Skybox Shading
-			D3DLIGHT9 light;
-			m_pDevice->GetLight(0, &light);
 			bool bLit = !bEmissive && g_bSkyboxShading;
 			g_pSkyboxFX->SetBool("g_bLighting", bLit);
-			g_pSkyboxFX->SetValue("g_vLightDirection", g_bSkyboxFog ? (g_bDefaultLightDir ? &g_vGlobalLightDir : &g_vLightDir) : &g_vGlobalLightDir, sizeof(D3DXVECTOR3));
+			g_pSkyboxFX->SetValue("g_vLightDirection", (g_bDefaultLightDir || g_bSkyboxFog) ? &g_vGlobalLightDir : &g_vLightDir, sizeof(D3DXVECTOR3));
 			if (bLit && !g_bSkyboxFog)
 			{
-				FVector linearDiffuseColor = g_bLightColorSRGB ? FVector::ColorToLinearFixedIntensity(light.Diffuse) : light.Diffuse;
-				FVector linearAmbientColor = g_bAmbientColorSRGB ? FVector::ColorToLinearFixedIntensity(light.Ambient) : light.Ambient;
-				g_pSkyboxFX->SetValue("g_vLightDiffuse", &linearDiffuseColor, sizeof(D3DXVECTOR3));
-				g_pSkyboxFX->SetValue("g_vLightAmbient", &linearAmbientColor, sizeof(D3DXVECTOR3));
+				g_pSkyboxFX->SetValue("g_vLightDiffuse", g_bDefaultAmbientColor ? &g_vGlobalAmbientColor : &g_vAmbColor, sizeof(D3DXVECTOR3));
+				g_pSkyboxFX->SetValue("g_vLightAmbient", g_bDefaultLightColor ? &g_vGlobalLightColor : &g_vLightColor, sizeof(D3DXVECTOR3));
 			}
 
 			// Other
@@ -2438,7 +2272,7 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 
 			return D3D_OK;
 		}
-		else if (curRenderStage == ERenderStage::Terrain)
+		else if (curRenderStage == ERenderStage::Terrain || curRenderStage == ERenderStage::Ubersplat)
 		{
 			UpdateLightAndFog();
 
@@ -2463,7 +2297,7 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 			m_pDevice->GetRenderState(D3DRS_FOGENABLE, &bFog);
 			g_pStandardFX->SetBool("g_bTexture", g_bTexture);
 			g_pStandardFX->SetBool("g_bMaterialUnshaded", g_bSimpleMaterial);
-			g_pStandardFX->SetBool("g_bMaterialUnfogged", !(bFog && g_bEnableFog));
+			g_pStandardFX->SetBool("g_bMaterialUnfogged", !(bFog && g_bEnableFog) || g_bSimpleMaterial);
 			g_pStandardFX->SetBool("g_bPBS", g_bPBS);
 			g_pStandardFX->SetFloat("g_fMaterialRoughness", g_fTerrainRoughness);
 			g_pStandardFX->SetFloat("g_fMaterialMetallic", g_fTerrainMetallic);
@@ -2514,7 +2348,7 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 			m_pDevice->GetRenderState(D3DRS_FOGENABLE, &bFog);
 			g_pStandardFX->SetBool("g_bTexture", true);
 			g_pStandardFX->SetBool("g_bMaterialUnshaded", g_bSimpleMaterial);
-			g_pStandardFX->SetBool("g_bMaterialUnfogged", !(bFog && g_bEnableFog));
+			g_pStandardFX->SetBool("g_bMaterialUnfogged", !(bFog && g_bEnableFog) || g_bSimpleMaterial);
 			g_pStandardFX->SetBool("g_bPBS", false);
 
 			// Other
@@ -2544,7 +2378,7 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 
 			return D3D_OK;
 		}
-		else if (curRenderStage == ERenderStage::Unit || curRenderStage == ERenderStage::Destructible || curRenderStage == ERenderStage::Decoration || curRenderStage == ERenderStage::Building || curRenderStage == ERenderStage::Ubersplat || curRenderStage == ERenderStage::Indicator || curRenderStage == ERenderStage::OcclusionMask || curRenderStage == ERenderStage::Lightning || curRenderStage == ERenderStage::Weather || curRenderStage == ERenderStage::TerrainShadow || curRenderStage == ERenderStage::WaterShadow || curRenderStage == ERenderStage::Footprint || curRenderStage == ERenderStage::SelectionCircle || curRenderStage == ERenderStage::Water)
+		else if (curRenderStage == ERenderStage::Unit || curRenderStage == ERenderStage::Destructible || curRenderStage == ERenderStage::Decoration || curRenderStage == ERenderStage::Building || curRenderStage == ERenderStage::Indicator || curRenderStage == ERenderStage::OcclusionMask || curRenderStage == ERenderStage::Lightning || curRenderStage == ERenderStage::Weather || curRenderStage == ERenderStage::TerrainShadow || curRenderStage == ERenderStage::WaterShadow || curRenderStage == ERenderStage::Footprint || curRenderStage == ERenderStage::SelectionCircle || curRenderStage == ERenderStage::Water)
 		{
 			UpdateLightAndFog();
 
@@ -2578,7 +2412,7 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 			bool bVertexColor = (stride == 36) && g_bVertexColor;
 			bool bUnshaded = (!bLighting || bEmissive) && g_bUnshadedMaterials;
 			bool bUnfogged = (!bFog && g_bUnfoggedMaterials) || !g_bEnableFog;
-			FVector matDiffuse = bEmissive ? material.Emissive : material.Diffuse;
+			FColor matDiffuse = bEmissive ? material.Emissive : material.Diffuse;
 			if (g_bMaterialColor && g_bMaterialColorSRGB)
 				matDiffuse.ToLinear();
 			g_pStandardFX->SetBool("g_bTexture", g_bTexture);
@@ -2586,9 +2420,12 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 			g_pStandardFX->SetBool("g_bVertexColorSRGB", g_bVertexColorSRGB);
 			g_pStandardFX->SetBool("g_bMaterialColor", g_bMaterialColor);
 			g_pStandardFX->SetBool("g_bMaterialUnshaded", bUnshaded || g_bSimpleMaterial);
-			g_pStandardFX->SetBool("g_bMaterialUnfogged", bUnfogged);
-			g_pStandardFX->SetValue("g_vMaterialEmissive", &D3DXVECTOR4(0.0f, 0.0f, 0.0f, 1.0f), sizeof(D3DXVECTOR4));
-			g_pStandardFX->SetValue("g_vMaterialDiffuse", &matDiffuse, sizeof(FVector));
+			g_pStandardFX->SetBool("g_bMaterialUnfogged", bUnfogged || g_bSimpleMaterial);
+			if (curRenderStage == ERenderStage::Lightning)
+				g_pStandardFX->SetValue("g_vMaterialEmissive", &D3DXVECTOR4(0.0f, 0.0f, 0.0f, 4.0f), sizeof(D3DXVECTOR4));
+			else
+				g_pStandardFX->SetValue("g_vMaterialEmissive", &D3DXVECTOR4(0.0f, 0.0f, 0.0f, 1.0f), sizeof(D3DXVECTOR4));
+			g_pStandardFX->SetValue("g_vMaterialDiffuse", &matDiffuse, sizeof(FColor));
 			g_pStandardFX->SetBool("g_bPBS", g_bPBS);
 			g_pStandardFX->SetFloat("g_fMaterialRoughness", g_fMaterialRoughness);
 			g_pStandardFX->SetFloat("g_fMaterialMetallic", g_fMaterialMetallic);
@@ -2598,7 +2435,7 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 			// Other
 			g_pStandardFX->SetBool("g_bIBL", g_bIBL);
 			g_pStandardFX->SetBool("g_bShadows", CascadedShadows && CascadedShadows->IsEnabled());
-			g_pStandardFX->SetBool("g_bNormalMapping", g_bNormalMapping && !g_normalTexture.IsEmpty());
+			g_pStandardFX->SetBool("g_bNormalMapping", false);
 			g_pStandardFX->SetBool("g_bContactShadows", g_bEnableHDR && PostProcessing && PostProcessing->bContactShadows && !PostProcessing->contactShadowsRT.IsEmpty());
 			g_pStandardFX->SetBool("g_bSSAO", g_bEnableHDR && PostProcessing && PostProcessing->bSSAO && !PostProcessing->ssaoRT.IsEmpty());
 			g_pStandardFX->SetBool("g_bPointLight", g_bPointLight && g_bGlobalPointLight);
@@ -2653,7 +2490,7 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 
 			m_pDevice->DrawIndexedPrimitive(primitiveType, baseVertexIndex, minIndex, numVertices, startIndex, primitiveCount);
 		}
-		else if (curRenderStage == ERenderStage::MainMenuUI)
+		else if (curRenderStage == ERenderStage::CineFilter || curRenderStage == ERenderStage::Unknown)
 		{
 			// Texture Filtering and Gamma Correction
 			m_pDevice->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, 0);
@@ -2664,7 +2501,6 @@ HRESULT CEngine::OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 ba
 
 	return D3D_OK;
 }
-
 
 
 bool CEngine::OnGetMessage(HWND ah_Wnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
@@ -2715,76 +2551,17 @@ bool CEngine::OnKeyboardDown(WPARAM getKey)
 		g_bGamePaused = !g_bGamePaused;
 		JassNatives::PauseGame(g_bGamePaused);
 	}
-	if (getKey == hotkey_TakeScreenshot)
+	else if (getKey == hotkey_TakeScreenshot)
 	{
 		g_bTakeScreenshot = true;
 	}
 
 	if (getKey == 'Z')
 	{
-		//g_bVsyncEnabled = !g_bVsyncEnabled;
-		//ResetDevice();
-
-		//message = std::to_string((int)fast_call<RECT*>(address_GameBase + 0x526300));
-		/*uint32 pGameUI = GetGameUI(0, 0);
-		uint32 pWorldFrame = *((uint32*)pGameUI + 239);;
-		*(uint32*)(pWorldFrame + 768) = g_fDebugValue;*/
-
-		//*((uint32*)GetTerrain() + 191) = 0xFFFFFFFF;
-		//g_bRenderEnvMap = true;
-
-		//uint32 pGxDevice = *(uint32*)(address_GameBase + 0x9558FC);
-		//message = std::to_string(*(float*)(pGxDevice + 572));
-
-		/*message = "";
-		uint32 pTerrain = GetTerrain();
-		for (int i = 0; i < 20; i++)
-			message += std::to_string(*((uint32*)pTerrain + g_iLogStride + i)) + '\n';*/
-
-			//*(uint32*)(pTerrain + 764) = 0x00000000;
-			//*(uint32*)(pTerrain + 56) = 32;
-
-			//this_call<void**>(address_GameBase + 0x611D40, *(DWORD*)(GetGameUI(1,0) + 588), "RenderEdge");
-			//fast_call<void>(address_GameBase + 0x606770, *(DWORD*)(GetGameUI(0, 0) + 588) + 180, 8, GetGameUI(0, 0) + 180, 8, -0.113f, 0.0f , 1);
-			//fast_call<int>(address_GameBase + 0x4E82D0, *(DWORD *)(*(DWORD *)(GetGameUI(1, 0) + 596) + 52), 8, &D3DXVECTOR3(0, 0, 0), 0.0f);
-
-			//SetFramePoint(*(DWORD*)(GetGameUI(0, 0) + 588) + 180, EFramePoint::BottomRight, GetGameUI(0, 0) + 180, EFramePoint::BottomRight, 0.0f, 0.0f);
-
-			//jReal scale = to_jReal(2.0f);
-			//JassNatives::SetUnitScale(unit, &scale, &scale, &scale);
-
-			//D3DXVECTOR3 scale = D3DXVECTOR3(2.0f, 2.0f, 2.0f);
-			//float scale = 2.0f;
-
-			//uint32 result = this_call<uint32>(address_GameBase + 0x3BDCB0, unit);
-
-			//result = *(uint32*)(result + 40);
-
-			//fast_call<uint32>(address_GameBase + 0x4E8380, result, 2, &scale);
+		//ScreenLog::Clear();
+		//char* dword_6FAAE64C = (char*)(address_GameBase + 0xAAE64C);
+		//ScreenLog::Message() << fast_call<int>(address_GameBase + 0x4CA130, *(int **)dword_6FAAE64C, (int)"Rows");
 	}
-
-	/*if (getKey == 'Z')
-	{
-		bBorders = !bBorders;
-
-		uint32 gameUI = GetGameUI(0, 0);
-		uint32 pWorldFrameWar3 = *((uint32*)gameUI + 239) + 180;
-		uint32 pRootFrame = gameUI + 180;
-
-		float x = 0.0f;
-		float height = 0.08f;
-
-		if (bBorders)
-		{
-			this_call<void**>(address_GameBase + 0x606770, pWorldFrameWar3, 2, pRootFrame, 2, x, -height, 1);
-			this_call<void**>(address_GameBase + 0x606770, pWorldFrameWar3, 6, pRootFrame, 6, x, height, 1);
-		}
-		else
-		{
-			this_call<void**>(address_GameBase + 0x606770, pWorldFrameWar3, 2, pRootFrame, 2, 0.0f, 0.0f, 1);
-			this_call<void**>(address_GameBase + 0x606770, pWorldFrameWar3, 6, pRootFrame, 6, 0.0f, 0.0f, 1);
-		}
-	}*/
 
 	if (FreeCamera)
 		FreeCamera->OnKeyboardDown(getKey);
@@ -2799,7 +2576,6 @@ bool CEngine::OnKeyboardUp(WPARAM getKey)
 
 	return false;
 }
-
 
 
 void CEngine::RenderText()
@@ -2821,8 +2597,12 @@ void CEngine::RenderText()
 	output << memoryUsed << " MB" << std::endl << std::endl;
 
 	output << "MouseX: " << mX << "  (" << mX * g_vBufferSize.z << ")" << std::endl;
-	output  << "MouseY: " << mY << "  (" << mY * g_vBufferSize.w << ")" << std::endl;
-	output << "Control ID: " << CustomUI->GetCtrlFromMousePoint() << std::endl << std::endl;
+	output << "MouseY: " << mY << "  (" << mY * g_vBufferSize.w << ")" << std::endl;
+
+	if (CustomUI)
+	{
+		output << "Control ID: " << CustomUI->GetCtrlFromMousePoint() << std::endl << std::endl;
+	}
 
 	if (CascadedShadows)
 	{

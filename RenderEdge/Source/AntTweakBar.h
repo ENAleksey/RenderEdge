@@ -13,6 +13,7 @@ public:
 	CAntTweakBar(IDirect3DDevice9* pDevice);
 	~CAntTweakBar();
 
+	void Init();
 	void Render();
 	void OnResetDevice();
 	void OnLostDevice();
@@ -27,6 +28,8 @@ public:
 	static void TW_CALL GetFreeCamera_cb(void *value, void *clientData);
 	static void TW_CALL SetVsync_cb(const void *value, void *clientData);
 	static void TW_CALL GetVsync_cb(void *value, void *clientData);
+	static void TW_CALL SetScreenMode_cb(const void *value, void *clientData);
+	static void TW_CALL GetScreenMode_cb(void *value, void *clientData);
 	static void TW_CALL SetUserInterface_cb(const void *value, void *clientData);
 	static void TW_CALL GetUserInterface_cb(void *value, void *clientData);
 	static void TW_CALL SetMaskedObject_cb(const void *value, void *clientData);
@@ -42,6 +45,7 @@ public:
 	static void TW_CALL GetLutBool_cb(void *value, void *clientData);
 	static void TW_CALL GetLutColor_cb(void *value, void *clientData);
 	static void TW_CALL CheckAllRenderStages_cb(void *clientData);
+	static void TW_CALL ReloadShaders_cb(void *clientData);
 };
 
 extern CAntTweakBar* AntTweakBar;

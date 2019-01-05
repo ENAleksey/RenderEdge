@@ -45,23 +45,12 @@ void CResourceManager::LoadShader(const std::string& fileName, D3DXMACRO* define
 
 	bool bLocalFiles = false;
 	if (bAllowLocalFiles && !bFromMpq)
-	{
-		const std::string workPath = "C:\\RenderEdge\\bin\\Release\\";
-		if (utils::FileExists(workPath + fileName))
-		{
-			filePath = workPath + fileName;
+		if (utils::FileExists(RenderEdgePath + fileName))
 			bLocalFiles = true;
-		}
-		else if (utils::FileExists(RenderEdgePath + fileName))
-		{
-			filePath = RenderEdgePath + fileName;
-			bLocalFiles = true;
-		}
-	}
 
 	if (bLocalFiles)
 	{
-		D3DXCreateEffectFromFileA(m_pDevice, filePath.c_str(), defines, nullptr, shaderFlags, nullptr, pEffect, &pErrorBuffer);
+		D3DXCreateEffectFromFileA(m_pDevice, (RenderEdgePath + filePath).c_str(), defines, nullptr, shaderFlags, nullptr, pEffect, &pErrorBuffer);
 	}
 	else
 	{

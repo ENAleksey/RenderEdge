@@ -97,9 +97,9 @@ struct STANDARD_OUT
 {
 	float4 position			:  POSITION;
 	float2 texCoord			:  TEXCOORD0;
-	float3 worldNormal		:  TEXCOORD1;
-	float3 worldPos			:  TEXCOORD2;
-	float4 vertexPos		:  TEXCOORD3;
+	float3 worldNormal		:  NORMAL;
+	float3 worldPos			:  TEXCOORD1;
+	float4 vertexPos		:  TEXCOORD2;
 	float4 vertexColor		:  COLOR;
 };
 
@@ -108,7 +108,7 @@ STANDARD_OUT StandardVS(STANDARD_IN IN)
 	STANDARD_OUT OUT;
 
 	OUT.position = mul(float4(IN.position, 1.0f), g_mWorldViewProjection);
-	OUT.texCoord = mul(float4(IN.texCoord, 1.0f, 1.0f), g_mTextureTransform);
+	OUT.texCoord = mul(float4(IN.texCoord, 1.0f, 1.0f), g_mTextureTransform).xy;
 	OUT.worldPos = mul(float4(IN.position, 1.0f), g_mWorld).xyz;
 	OUT.vertexPos = OUT.position;
 	OUT.vertexColor = g_bVertexColorSRGB ? toLinear(IN.vertexColor) : IN.vertexColor; // TODO: vertexColor input in linear space
@@ -130,9 +130,9 @@ struct TERRAIN_OUT
 {
 	float4 position			:  POSITION;
 	float2 texCoord			:  TEXCOORD0;
-	float3 worldNormal		:  TEXCOORD1;
-	float3 worldPos			:  TEXCOORD2;
-	float4 vertexPos		:  TEXCOORD3;
+	float3 worldNormal		:  NORMAL;
+	float3 worldPos			:  TEXCOORD1;
+	float4 vertexPos		:  TEXCOORD2;
 };
 
 TERRAIN_OUT TerrainVS(TERRAIN_IN IN)
@@ -155,12 +155,14 @@ TERRAIN_OUT TerrainVS(TERRAIN_IN IN)
 
 float3 VisualizeCascades(float3 color, float dist)
 {
-	if (dist < g_vCascades.x)
-		color += float3(0.2f, 0.0f, 0.0f);
-	else if (dist < g_vCascades.y)
-		color += float3(0.0f, 0.2f, 0.0f);
-	else if (dist < g_vCascades.z)
-		color += float3(0.0f, 0.0f, 0.2f);
+	color *= 0.5f;
+
+	if (dist <= g_vCascades[0])
+		color += float3(0.5f, 0.0f, 0.0f);
+	else if (dist <= g_vCascades[1])
+		color += float3(0.0f, 0.5f, 0.0f);
+	else if (dist <= g_vCascades[2])
+		color += float3(0.0f, 0.0f, 0.5f);
 		
 	return color;
 }

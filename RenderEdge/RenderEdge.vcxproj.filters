@@ -26,9 +26,6 @@
     <ClInclude Include="Source\Font.h">
       <Filter>Sources\Font Manager</Filter>
     </ClInclude>
-    <ClInclude Include="Source\FVector.h">
-      <Filter>Sources\Math</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Mesh.h">
       <Filter>Sources\Mesh Manager</Filter>
     </ClInclude>
@@ -134,6 +131,12 @@
     <ClInclude Include="Source\Log.h">
       <Filter>Sources\Utils</Filter>
     </ClInclude>
+    <ClInclude Include="Source\SystemTextures.h">
+      <Filter>Sources\Resource Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FColor.h">
+      <Filter>Sources\Math</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="RenderEdge.rc" />
@@ -237,6 +240,7 @@
     <None Include="Shaders\PostProcessCommon.fxh">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="..\Bin\Release\RenderEdge.ini" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Shadows.fx">
@@ -303,9 +307,6 @@
     </ClCompile>
     <ClCompile Include="Source\Font.cpp">
       <Filter>Sources\Font Manager</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\FVector.cpp">
-      <Filter>Sources\Math</Filter>
     </ClCompile>
     <ClCompile Include="Source\MeshManager.cpp">
       <Filter>Sources\Mesh Manager</Filter>
@@ -399,6 +400,12 @@
     </ClCompile>
     <ClCompile Include="Source\Log.cpp">
       <Filter>Sources\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SystemTextures.cpp">
+      <Filter>Sources\Resource Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\FColor.cpp">
+      <Filter>Sources\Math</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

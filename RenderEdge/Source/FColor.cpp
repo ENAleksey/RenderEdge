@@ -1,88 +1,64 @@
-#include "FVector.h"
+#include "FColor.h"
 
-FVector::FVector(const D3DXVECTOR3& Vector, float alpha) :
-	r(Vector.x),
-	g(Vector.y),
-	b(Vector.z),
+FColor::FColor(const D3DXVECTOR3& color, float alpha) :
+	r(color.x),
+	g(color.y),
+	b(color.z),
 	a(alpha)
 {}
 
-FVector::FVector(const FVector& Vector, float alpha) :
-	r(Vector.r),
-	g(Vector.g),
-	b(Vector.b),
+FColor::FColor(const FColor& color, float alpha) :
+	r(color.r),
+	g(color.g),
+	b(color.b),
 	a(alpha)
 {}
 
-FVector::FVector(const D3DCOLORVALUE& Vector) :
-	r(Vector.r),
-	g(Vector.g),
-	b(Vector.b),
-	a(Vector.a)
+FColor::FColor(const D3DCOLORVALUE& color) :
+	r(color.r),
+	g(color.g),
+	b(color.b),
+	a(color.a)
 {}
 
-FVector::FVector(const D3DXVECTOR4& Vector) :
-	r(Vector.x),
-	g(Vector.y),
-	b(Vector.z),
-	a(Vector.w)
+FColor::FColor(const D3DXVECTOR4& color) :
+	r(color.x),
+	g(color.y),
+	b(color.z),
+	a(color.w)
 {}
 
 
 
 
-FVector FVector::ColorToLinear(const D3DXVECTOR3& Vector)
+FColor FColor::ToLinear(const D3DXVECTOR3& color)
 {
-	FVector LinearColor;
-	LinearColor.r = sRGBToLinearTable[(int)(Vector.x * 255)];
-	LinearColor.g = sRGBToLinearTable[(int)(Vector.y * 255)];
-	LinearColor.b = sRGBToLinearTable[(int)(Vector.z * 255)];
+	FColor LinearColor;
+	LinearColor.r = sRGBToLinearTable[(int)(color.x * 255)];
+	LinearColor.g = sRGBToLinearTable[(int)(color.y * 255)];
+	LinearColor.b = sRGBToLinearTable[(int)(color.z * 255)];
 
 	return LinearColor;
 }
 
-FVector FVector::ColorToLinear(const FVector& Vector)
+FColor FColor::ToLinear(const FColor& color)
 {
-	FVector LinearColor;
-	LinearColor.r = sRGBToLinearTable[(int)(Vector.r * 255)];
-	LinearColor.g = sRGBToLinearTable[(int)(Vector.g * 255)];
-	LinearColor.b = sRGBToLinearTable[(int)(Vector.b * 255)];
+	FColor LinearColor;
+	LinearColor.r = sRGBToLinearTable[(int)(color.r * 255)];
+	LinearColor.g = sRGBToLinearTable[(int)(color.g * 255)];
+	LinearColor.b = sRGBToLinearTable[(int)(color.b * 255)];
 
 	return LinearColor;
 }
 
-void FVector::ToLinear()
+void FColor::ToLinear()
 {
 	r = sRGBToLinearTable[(int)(r * 255)];
 	g = sRGBToLinearTable[(int)(g * 255)];
 	b = sRGBToLinearTable[(int)(b * 255)];
 }
 
-void FVector::ToLinearFixedIntensity()
-{
-	float MaxComponent = Max3();
-
-	if (MaxComponent > 1.0f)
-	{
-		r = sRGBToLinearTable[(int)(r / MaxComponent * 255)] * MaxComponent;
-		g = sRGBToLinearTable[(int)(g / MaxComponent * 255)] * MaxComponent;
-		b = sRGBToLinearTable[(int)(b / MaxComponent * 255)] * MaxComponent;
-	}
-	else
-		ToLinear();
-}
-
-FVector FVector::ColorToLinearFixedIntensity(const FVector& InColor)
-{
-	float MaxComponent = InColor.Max3();
-
-	if (MaxComponent > 1.0f)
-		return ColorToLinear(InColor / MaxComponent) * MaxComponent;
-	else
-		return ColorToLinear(InColor);
-}
-
-FVector FVector::ColorFromTemperature(float Temp)
+FColor FColor::FromTemperature(float Temp)
 {
 	//Temp = FMath::Clamp(Temp, 1000.0f, 15000.0f);
 
@@ -103,11 +79,11 @@ FVector FVector::ColorFromTemperature(float Temp)
 	float G = -0.9692660f * X + 1.8760108f * Y + 0.0415560f * Z;
 	float B = 0.0556434f * X + -0.2040259f * Y + 1.0572252f * Z;
 
-	return FVector(R, G, B);
+	return FColor(R, G, B);
 }
 
 
-float FVector::Pow22OneOver255Table[256] =
+float FColor::Pow22OneOver255Table[256] =
 {
 	0, 5.07705190066176E-06, 2.33280046660989E-05, 5.69217657121931E-05, 0.000107187362341244, 0.000175123977503027, 0.000261543754548491, 0.000367136269815943, 0.000492503787191433,
 	0.000638182842167022, 0.000804658499513058, 0.000992374304074325, 0.0012017395224384, 0.00143313458967186, 0.00168691531678928, 0.00196341621339647, 0.00226295316070643,
@@ -140,7 +116,7 @@ float FVector::Pow22OneOver255Table[256] =
 	0.948964938178195, 0.957369576199527, 0.96581465350313, 0.974300202388861, 0.982826255053791, 0.99139284359294, 1
 };
 
-float FVector::sRGBToLinearTable[256] =
+float FColor::sRGBToLinearTable[256] =
 {
 	0.0f,
 	0.000303526983548838f, 0.000607053967097675f, 0.000910580950646512f, 0.00121410793419535f, 0.00151763491774419f,

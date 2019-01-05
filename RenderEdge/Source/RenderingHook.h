@@ -26,8 +26,9 @@ enum class ERenderStage : uint32
 	Ubersplat = 19,
 	Lightning = 20,
 	FloatingText = 21,
+	CineFilter,
 	UI,
-	MainMenuUI
+	Unknown
 };
 
 namespace RenderingHook
@@ -54,6 +55,7 @@ namespace RenderingHook
 	extern bool bRenderOcclusionMask;
 	extern bool bRenderLightning;
 	extern bool bRenderFloatingText;
+	extern bool bRenderCineFilter;
 
 	extern ERenderStage iCurrentRenderStage;
 

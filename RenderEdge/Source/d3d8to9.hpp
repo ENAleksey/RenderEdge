@@ -43,8 +43,8 @@ class __declspec(uuid("0E689C9A-053D-44A0-9D92-DB0E3D750F86")) Direct3DIndexBuff
 #include "lookup_table.hpp"
 
 extern Direct3DDevice8* g_pDevice8;
-extern D3DPRESENT_PARAMETERS8 g_pPresentParameters;
-void ResetDevice();
+extern D3DPRESENT_PARAMETERS8 g_presentParameters;
+void ForceResetDevice8();
 
 class Direct3D8 : public IUnknown
 {

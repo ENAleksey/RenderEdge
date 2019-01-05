@@ -8,10 +8,10 @@ TextureRenderTarget2D::TextureRenderTarget2D() :
 
 }
 
-TextureRenderTarget2D::TextureRenderTarget2D(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format) :
+TextureRenderTarget2D::TextureRenderTarget2D(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format, ETexturePool pool) :
 	width(0), height(0), mipLevels(0), texture(nullptr), surface(nullptr), format(ETextureFormat::Unknown)
 {
-	Create(pDevice, width, height, mipLevels, usage, format);
+	Create(pDevice, width, height, mipLevels, usage, format, pool);
 }
 
 TextureRenderTarget2D::~TextureRenderTarget2D()
@@ -19,18 +19,18 @@ TextureRenderTarget2D::~TextureRenderTarget2D()
 	Release();
 }
 
-bool TextureRenderTarget2D::Create(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format)
+bool TextureRenderTarget2D::Create(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format, ETexturePool pool)
 {
 	this->width = width;
 	this->height = height;
 	this->mipLevels = mipLevels;
 	this->format = format;
 
-	HRESULT hr = pDevice->CreateTexture(width, height, mipLevels, static_cast<uint32>(usage), static_cast<D3DFORMAT>(format), D3DPOOL_DEFAULT, &texture, nullptr);
+	HRESULT hr = pDevice->CreateTexture(width, height, mipLevels, static_cast<uint32>(usage), static_cast<D3DFORMAT>(format), static_cast<D3DPOOL>(pool), &texture, nullptr);
 
 	if (hr != D3D_OK)
 	{
-		LOG(ERROR) << "TextureRenderTarget2D::Create -> Failed to create texture";
+		LOG(ERROR) << __FUNCTION__ << " -> Failed to create texture";
 		return false;
 	}
 

@@ -17,19 +17,18 @@ struct Frustum
 	D3DXVECTOR3 center;
 };
 
-
 class CCascadedShadows
 {
 private:
 	IDirect3DDevice9* m_pDevice;
-	ID3DXEffect* m_pEffect;
-	uint32 m_iNumCascades;
+	//uint32 m_iNumCascades;
 	TextureRenderTarget2D shadowRT;
 	IDirect3DSurface9* pShadowDepth;
 	IDirect3DVertexDeclaration9* pVertexDecl;
 
-	void UpdateSplitDist(Frustum* f, float nd, float fd);
-	void UpdateFrustumPoints(Frustum& f, D3DXVECTOR3& center, D3DXVECTOR3& view_dir);
+	void UpdateCascades();
+	void UpdateSplitDist(Frustum* frustums, float nd, float fd);
+	void UpdateFrustumPoints(Frustum& frustum, const D3DXVECTOR3& center, const D3DXVECTOR3& view_dir);
 	void RenderCascade(uint32 iCascade);
 
 public:
@@ -40,10 +39,12 @@ public:
 	void OnLostDevice();
 
 	bool IsEnabled() { return (bObjectsShadows || bTerrainShadows); }
-	const uint32& GetCascadesCount() { return m_iNumCascades; }
+	//const uint32& GetCascadesCount() { return m_iNumCascades; }
 	IDirect3DTexture9* GetTexture() { return shadowRT.GetTexture(); }
 	void ReleaseMeshes();
 	void Render();
+
+	ID3DXEffect* m_pEffect;
 
 	bool bObjectsShadows;
 	bool bTerrainShadows;
@@ -56,6 +57,7 @@ public:
 	float fFoV;
 	uint32 iShadowMapSize;
 	uint32 iShadowMapSizeOld;
+	D3DXVECTOR4 vShadowBufferSize;
 	D3DCULL iShadowCullMode;
 	D3DXMATRIX mShadow[NUM_CASCADES];
 
@@ -64,9 +66,9 @@ public:
 	uint32 iChunksCount;
 	uint32 iUnitsCount;
 
-	Frustum f[NUM_CASCADES];
+	Frustum pFrustums[NUM_CASCADES];
+	float splitDepths[NUM_CASCADES];
 	float fSplitWeight;
-	D3DXVECTOR4 far_bound;
 	bool bVisCascades;
 };
 

@@ -20,6 +20,8 @@ uintptr_t address_RenderWorldObjects;
 uintptr_t address_RenderTranslucent;
 uintptr_t address_RenderOpaque;
 uintptr_t address_RenderWorld;
+uintptr_t address_RenderCineFilter;
+uintptr_t address_RenderUI;
 uintptr_t address_BuildHPBars;
 uintptr_t address_BuildMainMenu;
 uintptr_t address_InitSceneView;
@@ -63,6 +65,8 @@ void InitGameOffsets(uint32 gameBuildVersion)
 		address_RenderTranslucent = address_GameBase + 0x50B3A0;
 		address_RenderOpaque = address_GameBase + 0x50B1A0;
 		address_RenderWorld = address_GameBase + 0x395900;
+		address_RenderCineFilter = address_GameBase + 0x341740;
+		address_RenderUI = address_GameBase + 0x60C580;
 		address_BuildHPBars = address_GameBase + 0x379A30;
 		address_BuildMainMenu = address_GameBase + 0x58BD20;
 		address_InitSceneView = address_GameBase + 0x4E6C80;

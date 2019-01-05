@@ -1,6 +1,6 @@
 #include "TextureManager.h"
 #include "Utils.h"
-//#include "Log.h"
+#include "Log.h"
 
 
 CTextureManager* TextureManager;
@@ -28,7 +28,6 @@ bool CTextureManager::CreateTextureFromFile(const std::string& filename)
 
 	if (Index != INVALID_INDEX)
 	{
-		//LOG(logDEBUG) << "TextureManager::CreateTextureFromFile -> File already exists!";
 		return false;
 	}
 
@@ -37,7 +36,7 @@ bool CTextureManager::CreateTextureFromFile(const std::string& filename)
 
 	if (!TextureContainer.Add(filename, texture))
 	{
-		//LOG(logERROR) << "TextureManager::CreateTextureFromFile -> Unable to add texture!";
+		LOG(ERROR) << __FUNCTION__ << " -> Unable to add texture!";
 		delete texture; texture = nullptr;
 		return false;
 	}
@@ -52,7 +51,6 @@ bool CTextureManager::CreateTextureFromMPQ(HANDLE archive, const std::string& fi
 
 	if (Index != INVALID_INDEX)
 	{
-		//LOG(logDEBUG) << "TextureManager::CreateTextureFromMPQ -> File already exists!";
 		return false;
 	}
 
@@ -61,7 +59,7 @@ bool CTextureManager::CreateTextureFromMPQ(HANDLE archive, const std::string& fi
 
 	if (!TextureContainer.Add(filename, texture))
 	{
-		//LOG(logERROR) << "TextureManager::CreateTextureFromMPQ -> Unable to add texture!";
+		LOG(ERROR) << __FUNCTION__ << " -> Unable to add texture!";
 		delete texture; texture = nullptr;
 		return false;
 	}
@@ -76,7 +74,6 @@ bool CTextureManager::CreateEmptyTexture(uint32 argb, const std::string& name)
 
 	if (Index != INVALID_INDEX)
 	{
-		//LOG(logDEBUG) << "TextureManager::CreateEmptyTexture -> File already exists!";
 		return false;
 	}
 
@@ -85,7 +82,7 @@ bool CTextureManager::CreateEmptyTexture(uint32 argb, const std::string& name)
 
 	if (!TextureContainer.Add(name, texture))
 	{
-		//LOG(logERROR) << "TextureManager::CreateEmptyTexture -> Unable to add texture!";
+		LOG(ERROR) << __FUNCTION__ << " -> Unable to add texture!";
 		delete texture; texture = nullptr;
 		return false;
 	}

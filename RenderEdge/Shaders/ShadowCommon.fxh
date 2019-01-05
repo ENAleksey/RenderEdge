@@ -5,18 +5,18 @@
 
 #define NUM_CASCADES 3
 float4x4 g_mShadow[NUM_CASCADES];
+float g_vCascades[NUM_CASCADES];
 
 bool g_bShadows;
 bool g_bSoftShadows;
 bool g_bVisCascades;
-float4 g_vCascades;
 float g_fRadius;
-float g_fShadowTexelSize;
+float4 g_vShadowBufferSize;
 float g_fShadowPartitionSize;
 float g_fSoftTransitionScale;
 float g_fShadowSharpen;
 
-const float2 kernel[4] =
+static const float2 kernel[4] =
 {
     float2(0.7437094f, -0.2600714f),
 	float2(0.1452257f, 0.9243255f),
@@ -69,19 +69,23 @@ sampler2D shadowSampler = sampler_state
     return saturate((PCFResult00 + PCFResult10 + PCFResult20 + PCFResult01 + PCFResult11 + PCFResult21 + PCFResult02 + PCFResult12 + PCFResult22) * 0.11111f);
 }
 
+float4 CalculateOcclusion(float4 ShadowmapDepth, float SceneDepth)
+{
+    return saturate((ShadowmapDepth - SceneDepth) * g_fSoftTransitionScale + 1.0f);
+}
+
 void FetchRowOfFour(float2 Sample00TexelCenter, float VerticalOffset, out float4 Values0, float SceneDepth)
 {
-    Values0.x = tex2D(shadowSampler, (Sample00TexelCenter + float2(0, VerticalOffset)) * g_fShadowTexelSize).r;
-    Values0.y = tex2D(shadowSampler, (Sample00TexelCenter + float2(1, VerticalOffset)) * g_fShadowTexelSize).r;
-    Values0.z = tex2D(shadowSampler, (Sample00TexelCenter + float2(2, VerticalOffset)) * g_fShadowTexelSize).r;
-    Values0.w = tex2D(shadowSampler, (Sample00TexelCenter + float2(3, VerticalOffset)) * g_fShadowTexelSize).r;
+    Values0.x = tex2D(shadowSampler, (Sample00TexelCenter + float2(0, VerticalOffset)) * g_vShadowBufferSize.zw).r;
+    Values0.y = tex2D(shadowSampler, (Sample00TexelCenter + float2(1, VerticalOffset)) * g_vShadowBufferSize.zw).r;
+    Values0.z = tex2D(shadowSampler, (Sample00TexelCenter + float2(2, VerticalOffset)) * g_vShadowBufferSize.zw).r;
+    Values0.w = tex2D(shadowSampler, (Sample00TexelCenter + float2(3, VerticalOffset)) * g_vShadowBufferSize.zw).r;
     Values0 = CalculateOcclusion(Values0, SceneDepth);
 }
 
 float ManualPCF(float2 ShadowPosition, float SceneDepth)
 {
-    const float shadowSize = 1.0f / g_fShadowTexelSize;
-    float2 TexelPos = ShadowPosition * shadowSize - 0.5f;
+    float2 TexelPos = ShadowPosition * g_vShadowBufferSize.xy - 0.5f;
     float2 Fraction = frac(TexelPos);
     float2 TexelCenter = floor(TexelPos) + 0.5f;
 	{
@@ -89,18 +93,12 @@ float ManualPCF(float2 ShadowPosition, float SceneDepth)
 
         float4 SampleValues0, SampleValues1, SampleValues2, SampleValues3;
 
-
         FetchRowOfFour(Sample00TexelCenter, 0, SampleValues0, SceneDepth);
         FetchRowOfFour(Sample00TexelCenter, 1, SampleValues1, SceneDepth);
         FetchRowOfFour(Sample00TexelCenter, 2, SampleValues2, SceneDepth);
         FetchRowOfFour(Sample00TexelCenter, 3, SampleValues3, SceneDepth);
         return PCF3x3(Fraction, SampleValues0, SampleValues1, SampleValues2, SampleValues3);
     }
-}
-
-float4 CalculateOcclusion(float4 ShadowmapDepth, float SceneDepth)
-{
-    return saturate((ShadowmapDepth - SceneDepth) * g_fSoftTransitionScale + 1.0f);
 }*/
 
 float CalculateOcclusion(float ShadowmapDepth, float SceneDepth)
@@ -116,26 +114,25 @@ float ManualNoFiltering(float2 ShadowPosition, float SceneDepth)
 
 float GetShadowTerm(float3 worldPos, float3 vertexPos)
 {
-    int iCascadeIndex = -1;
-    if (vertexPos.z < g_vCascades.x)
+	if (vertexPos.z < 0.0f || vertexPos.z > g_vCascades[NUM_CASCADES - 1])
+		return 1.0f;
+		
+    int iCascadeIndex = 2;
+    if (vertexPos.z <= g_vCascades[0])
         iCascadeIndex = 0;
-    else if (vertexPos.z < g_vCascades.y)
+    else if (vertexPos.z <= g_vCascades[1])
         iCascadeIndex = 1;
-    else if (vertexPos.z < g_vCascades.z)
-        iCascadeIndex = 2;
-    else
-        return 1.0f;
 	
 	//worldPos += g_vLightDir.xyz * pow(saturate(g_fMaterialTranslucent - 0.4f), 4.0f);
 	
     float3 shadowCoord = mul(float4(worldPos, 1.0f), g_mShadow[iCascadeIndex]).xyz;
-    shadowCoord.x = shadowCoord.x * g_fShadowPartitionSize + (iCascadeIndex * g_fShadowPartitionSize);
-    const float shadowDepth = min(shadowCoord.z, 0.99999f);
+    shadowCoord.x = (shadowCoord.x + iCascadeIndex) * g_fShadowPartitionSize;
+    shadowCoord.z = min(shadowCoord.z, 0.99999f);
 	
     float fShadowTerm = 0.0f;
     /*if (g_bSoftShadows)
     {
-        fShadowTerm = ManualPCF(shadowCoord.xy, shadowDepth);
+        fShadowTerm = ManualPCF(shadowCoord.xy, shadowCoord.z);
         fShadowTerm = saturate((fShadowTerm - 0.5) * g_fShadowSharpen + 0.5);
     }
 	else*/
@@ -150,13 +147,13 @@ float GetShadowTerm(float3 worldPos, float3 vertexPos)
             for (int i = 0; i < 4; i++)
             {
                 const float2 rotatedOffset = float2(kernel[i].x * c + kernel[i].y * s, kernel[i].x * -s + kernel[i].y * c);
-                fShadowTerm += ManualNoFiltering(shadowCoord.xy + rotatedOffset * g_fShadowTexelSize * g_fRadius, shadowDepth);
+                fShadowTerm += ManualNoFiltering(shadowCoord.xy + rotatedOffset * g_vShadowBufferSize.zw * g_fRadius, shadowCoord.z);
             }
             fShadowTerm /= 4;
         }
         else
         {
-            fShadowTerm = ManualNoFiltering(shadowCoord.xy, shadowDepth);
+            fShadowTerm = ManualNoFiltering(shadowCoord.xy, shadowCoord.z);
         }
     }
 	

@@ -228,10 +228,8 @@ float4 FinalPassPS(float2 texCoord : TEXCOORD0) : COLOR
 	else
 		linearColor = tex2D(mainSampler, texCoord).rgb;
 
-
     //if (g_bVignette)
     //    return float4(VisualizeHDR(linearColor), 1.0f);
-
 
 	// Auto Exposure
 	[branch] if (g_bAutoExposure)
@@ -240,11 +238,11 @@ float4 FinalPassPS(float2 texCoord : TEXCOORD0) : COLOR
 		linearColor *= fAutoExposure;
 	}
 
-
 	// Bloom
 	[branch] if (g_bBloom)
 	{
 		float3 bloom = UpsampleFilter(bloomSampler, texCoord, g_vMainTextureSize, g_fBloomScale) * g_fBloomIntensity;
+		//bloom = max(pow(bloom, g_fLensDirtIntensity), 0.0f) * g_fBloomIntensity;
 		linearColor += bloom;
 		
 		[branch] if (g_bLensDirt)
@@ -253,7 +251,6 @@ float4 FinalPassPS(float2 texCoord : TEXCOORD0) : COLOR
 			linearColor += bloom * dirt;
 		}
 	}
-
 
 	// Vignetting
 	[branch] if (g_bVignette)
@@ -268,7 +265,6 @@ float4 FinalPassPS(float2 texCoord : TEXCOORD0) : COLOR
 		linearColor *= lerp(g_vVignetteColor, 1.0f, vfactor);
 	}
 
-
 	// Color Grading
     float3 outDeviceColor = ColorLookupTable(linearColor);
 	/* if (abs(g_fBloomThreshold - 1.0f) < 0.001f)
@@ -282,16 +278,13 @@ float4 FinalPassPS(float2 texCoord : TEXCOORD0) : COLOR
 	else
 		outDeviceColor = toGamma(linearColor);  */
 
-
 	// Dithering
 	[branch] if (g_bDithering)
 		outDeviceColor = Dither(outDeviceColor, texCoord);
 		
-		
 	// Film Grain
 	[branch] if (g_bFilmGrain)
 		outDeviceColor = FilmGrain(outDeviceColor, texCoord);
-	
 
 	return float4(outDeviceColor, 1.0f);
 }

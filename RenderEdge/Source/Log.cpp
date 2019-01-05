@@ -19,6 +19,7 @@ namespace ScreenLog
 
 	void Clear()
 	{
+		stream.str("");
 		stream.clear();
 	}
 }
