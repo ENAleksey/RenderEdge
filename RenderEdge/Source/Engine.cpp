@@ -1674,6 +1674,10 @@ void CEngine::OnMapStart()
 			{
 				PostProcessing->ReloadShaders();
 			}
+			if (listFile.find("Shaders\\Shadows.cso") != -1 && CascadedShadows)
+			{
+				CascadedShadows->ReloadShaders();
+			}
 		}
 	}
 
