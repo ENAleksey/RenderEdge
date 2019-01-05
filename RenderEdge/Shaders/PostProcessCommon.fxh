@@ -35,8 +35,8 @@ sampler2D mainSampler = sampler_state
 	MipFilter = None;
 	MinFilter = Linear;
     MagFilter = Linear;
-	AddressU = Clamp;
-    AddressV = Clamp;
+	AddressU = Border;
+    AddressV = Border;
 	BorderColor = 0x000000;
 };
 

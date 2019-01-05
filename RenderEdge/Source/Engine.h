@@ -8,7 +8,8 @@
 
 extern const std::string RenderEdgeVersion;
 
-extern bool g_bResetDevice;
+extern bool g_bWindowed;
+extern bool g_bVsyncEnabled;
 extern float g_fDebugValue;
 extern std::string RenderEdgePath;
 extern HANDLE mpqRenderEdge;
@@ -33,7 +34,6 @@ extern float g_fWideScreenMul;
 extern float g_fFPS;
 extern float g_fDeltaTime;
 extern float g_fTimer;
-extern bool g_bVsyncEnabled;
 
 extern bool g_bDefaultLightDir;
 extern D3DXVECTOR3 g_vGlobalLightDir;
@@ -50,8 +50,6 @@ extern IDirect3DSurface9* g_pBackBuffer;
 extern TextureRenderTarget2D g_depthRT;
 extern TextureRenderTarget2D g_mainRT;
 extern uint32 g_iFrameIndexMod8;
-
-//void RenderText(const std::string & text);
 
 
 class CEngine
@@ -78,17 +76,21 @@ public:
 
 	void InitTemporaryResources();
 	void ReleaseTemporaryResources();
+	void ReloadShaders();
 	
-	bool ReadConfigFile();
-	void RenderText();
+	void GetBackBufferSize();
+	void GetSupportedDepthFormat();
+	void OnFrameRenderingSetup(uint32 SampleCount);
+	bool ReadConfigFile(const std::string& fileName);
 	void TakeScreenshot();
+	void RenderText();
 
 	void UpdateLightAndFog();
 	void OnCalcSceneView_before(uint32 pCamera);
 	void OnCalcSceneView_after();
 
-	void OnRenderWorld_before();
-	void OnRenderWorld_after();
+	void OnRenderWorld();
+	void OnRenderUI();
 
 	HRESULT OnDrawIndexedPrimitive(D3DPRIMITIVETYPE primitiveType, int32 baseVertexIndex, uint32 minIndex, uint32 numVertices, uint32 startIndex, uint32 primitiveCount, uint32 stride, IDirect3DTexture9* currentTexture);
 

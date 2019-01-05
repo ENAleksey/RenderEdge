@@ -9,42 +9,12 @@
 #include "Log.h"
 
 Direct3DDevice8* g_pDevice8 = nullptr;
-D3DPRESENT_PARAMETERS8 g_pPresentParameters;
+D3DPRESENT_PARAMETERS8 g_presentParameters;
 
-void ResetDevice()
+void ForceResetDevice8()
 {
-	/*if (!g_bVsyncEnabled)
-	{
-		g_pPresentParameters.BackBufferWidth = 800;
-		g_pPresentParameters.BackBufferHeight = 600;
-		g_pPresentParameters.Windowed = true;
-	}
-	else
-	{
-		g_pPresentParameters.BackBufferWidth = 1600;
-		g_pPresentParameters.BackBufferHeight = 900;
-		g_pPresentParameters.Windowed = false;
-	}*/
-
-	//if (!g_bVsyncEnabled)
-	//{
-		//g_pPresentParameters.FullScreen_PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-		//g_pPresentParameters.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
-		//g_pPresentParameters.Windowed = true;
-	//}
-
-	g_pDevice8->Reset(&g_pPresentParameters);
-
-	//if (!g_bVsyncEnabled)
-	//{
-	//	SetWindowLong(g_pPresentParameters.hDeviceWindow, GWL_STYLE, WS_OVERLAPPEDWINDOW);
-	//	//SetWindowPos(g_pPresentParameters.hDeviceWindow, HWND_TOP, 0, 0, 800, 600, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_SHOWWINDOW);
-	//}
-	//else
-	//{
-	//	SetWindowLong(g_pPresentParameters.hDeviceWindow, GWL_STYLE, WS_POPUPWINDOW);
-	//	//SetWindowPos(g_pPresentParameters.hDeviceWindow, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-	//}
+	if (g_pDevice8)
+		g_pDevice8->Reset(&g_presentParameters);
 }
 
 static const D3DFORMAT AdapterFormats[] = {
@@ -237,21 +207,15 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 
 	D3DPRESENT_PARAMETERS PresentParams;
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
-	g_pPresentParameters = *pPresentationParameters;
+	g_presentParameters = *pPresentationParameters;
+
+	g_bWindowed = PresentParams.Windowed;
 
 	if (!g_bVsyncEnabled)
 	{
 		PresentParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		PresentParams.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 	}
-
-	// Set FOURCC_INTZ format
-	/*D3DDISPLAYMODE currentDisplayMode;
-	ProxyInterface->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &currentDisplayMode);
-	if (ProxyInterface->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, FOURCC_INTZ) == D3D_OK)
-	{
-		PresentParams.AutoDepthStencilFormat = FOURCC_INTZ;
-	}*/
 
 	// Get multisample quality level
 	if (PresentParams.MultiSampleType != D3DMULTISAMPLE_NONE)

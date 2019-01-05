@@ -8,7 +8,6 @@
 float2 g_vMainTextureSize;
 float g_fBloomScale;
 float3 g_vBloomColor;
-float4 g_vBloomThreshold;
 
 bool g_bBloom;
 float g_fBloomIntensity;
@@ -98,33 +97,6 @@ float4 BrightPassPS(float2 texCoord : TEXCOORD0) : COLOR
     return float4(linearColor, 1.0f);
 }
 
-/*float3 QuadraticThreshold(float3 color, float threshold, float3 curve)
-{
-    float br = max(max(color.r, color.g), color.b);
-	
-    float rq = clamp(br - curve.x, 0.0, curve.y);
-    rq = curve.z * rq * rq;
-	
-    color *= max(rq, br - threshold) / max(br, 1.0e-4);
-
-    return color;
-}
-
-float4 BrightPassPS(float2 texCoord : TEXCOORD0) : COLOR
-{
-    if (IsOutsideViewport(texCoord))
-        discard;
-
-    float3 linearColor = DownsampleFilter(mainSampler, texCoord, g_vMainTextureSize);
-    if (g_bAutoExposure)
-        linearColor *= tex2D(CurExposureSampler, float2(0.5f, 0.5f)).r;
-	
-    linearColor = min(39384227997.0f, linearColor);
-    linearColor = QuadraticThreshold(linearColor, g_vBloomThreshold.x, g_vBloomThreshold.yzw);
-	
-    return float4(min(linearColor, 65504.0f), 1.0f);
-}*/
-
 float4 DownsamplePS(float2 texCoord : TEXCOORD0) : COLOR
 {
     return float4(DownsampleFilter(mainSampler, texCoord, g_vMainTextureSize), 1.0f);
@@ -133,7 +105,7 @@ float4 DownsamplePS(float2 texCoord : TEXCOORD0) : COLOR
 float4 UpsamplePS(float2 texCoord : TEXCOORD0) : COLOR
 {
 	float3 bloom = UpsampleFilter(mainSampler, texCoord, g_vMainTextureSize, g_fBloomScale);
-	float3 color = tex2D(blurSampler, texCoord);// * g_vBloomColor;
+	float3 color = tex2D(blurSampler, texCoord);
 	
     return float4(color + bloom, 1.0f);
 }

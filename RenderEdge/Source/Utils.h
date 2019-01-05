@@ -56,6 +56,7 @@ namespace math
 	float ToLinearSpace(float x);
 	int32 FloorToInt(float x);
 	bool IsEqual(float a, float b, float e = FLT_EPSILON);
+	uint32 ReverseBits(uint32 Bits);
 }
 
 namespace registry

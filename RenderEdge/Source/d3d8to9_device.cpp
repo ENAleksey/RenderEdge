@@ -194,27 +194,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 		return D3DERR_INVALIDCALL;
 	}
 
-	g_pPresentParameters = *pPresentationParameters;
-
-	//if (!g_bVsyncEnabled)
-	//{
-	//	//pPresentationParameters->BackBufferWidth = 800;
-	//	//pPresentationParameters->BackBufferHeight = 600;
-	//	pPresentationParameters->Windowed = true;
-	//}
-	//else
-	//{
-	//	RECT rect;
-	//	GetClientRect(pPresentationParameters->hDeviceWindow, &rect);
-	//	pPresentationParameters->BackBufferWidth = 1600;// rect.right - rect.left;
-	//	pPresentationParameters->BackBufferHeight = 900;// rect.bottom - rect.top;
-	//	pPresentationParameters->Windowed = false;
-	//}
-
 	pCurrentRenderTarget = nullptr;
 
 	D3DPRESENT_PARAMETERS PresentParams;
 	ConvertPresentParameters(*pPresentationParameters, PresentParams);
+	g_presentParameters = *pPresentationParameters;
 
 	// Get multisample quality level
 	if (PresentParams.MultiSampleType != D3DMULTISAMPLE_NONE)
@@ -234,19 +218,25 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 		}
 	}
 
+	// Override Presentation Parameters
 	if (!g_bVsyncEnabled)
 	{
 		PresentParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 		PresentParams.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
 	}
 
-	// Set FOURCC_INTZ format
-	/*D3DDISPLAYMODE currentDisplayMode;
-	ProxyInterface->GetAdapterDisplayMode(D3DADAPTER_DEFAULT, &currentDisplayMode);
-	if (ProxyInterface->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, currentDisplayMode.Format, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, FOURCC_INTZ) == D3D_OK)
-	{
-	PresentParams.AutoDepthStencilFormat = FOURCC_INTZ;
-	}*/
+	//if (g_bWindowed)
+	//{
+	//	//PresentParams.BackBufferWidth = 800;
+	//	//PresentParams.BackBufferHeight = 600;
+	//	PresentParams.Windowed = true;
+	//}
+	//else
+	//{
+	//	//PresentParams.BackBufferWidth = 1600;
+	//	//PresentParams.BackBufferHeight = 900;
+	//	PresentParams.Windowed = false;
+	//}
 
 	// Release Engine temporary resources
 	if (Engine)

@@ -7,13 +7,13 @@
 
 enum class EDebugScreen : uint32
 {
+	SceneColor,
 	SceneDepth,
 	CascadedShadows,
 	ContactShadows,
 	SSAO,
 	SSR,
 	BloomBrightPass,
-	Bloom
 };
 
 class CPostProcessing
@@ -30,7 +30,6 @@ private:
 	void ApplyEffect(IDirect3DSurface9* destRT, const std::string& technique, uint32 pass = 0, bool clear = true);
 
 	IDirect3DDevice9* m_pDevice;
-
 
 	// Effects
 	void ComputeEyeAdaptationValues();
@@ -61,12 +60,10 @@ public:
 
 	ID3DXEffect* m_pEffect;
 
-
 	// Debug View
 	bool bDebugView;
 	EDebugScreen iDebugScreen;
 	void SetDebugScreen(EDebugScreen debugScreen, TextureRenderTarget2D* pRT, bool bOneChannel = false, const D3DXVECTOR2& tiling = { 1.0f, 1.0f });
-
 
 	// SMAA
 	bool bSMAA;
@@ -75,7 +72,6 @@ public:
 	uint32 iSMAASearchSteps;
 	uint32 iSMADiagSearchSteps;
 	float fSMAACornerRounding;
-
 
 	// Temporal AA
 	bool bTemporalAA;
@@ -90,12 +86,11 @@ public:
 	uint32 iTemporalAASampleIndex;
 	uint32 iHistoryPingPong;
 
-
 	// Bloom
 	bool bBloom;
 	float fBloomThreshold;
 	float fBloomIntensity;
-	float fBloomRadius;
+	uint32 iBloomPasses;
 	float fBloomAnamorphicRatio;
 	//float fBloomSoftKnee;
 
@@ -118,7 +113,6 @@ public:
 	Texture2D lensDirtTexture;
 	std::string lensDirtTextureFileName;
 
-
 	// Auto Exposure
 	bool bAutoExposure;
 	float fAutoExposureSpeedUp;
@@ -131,7 +125,6 @@ public:
 	float fAutoExposureCalibrationConstant;
 	uint32 iExposurePingPong;
 	TextureRenderTarget2D adaptedExposureRTs[2];
-
 
 	// Color Correction
 	bool bUpdateLUT;
@@ -179,14 +172,12 @@ public:
 	uint32 iOutputDevice;
 	float fGamma;
 
-
 	// Tonemapper
 	float fFilmSlope;
 	float fFilmToe;
 	float fFilmShoulder;
 	float fFilmBlackClip;
 	float fFilmWhiteClip;
-
 
 	// Ambient Occlusion
 	bool bSSAO;
@@ -199,7 +190,6 @@ public:
 	bool bSSAODownsampleOld;
 	TextureRenderTarget2D ssaoRT;
 
-
 	// Reflections
 	bool bSSR;
 	bool bSSRDownsample;
@@ -211,7 +201,6 @@ public:
 	float fSSRDepthThreshold;
 	TextureRenderTarget2D ssrRT;
 
-
 	// Contact Shadows
 	bool bContactShadows;
 	bool bContactShadowsDownsample;
@@ -219,12 +208,10 @@ public:
 	float fContactShadowsRayLength;
 	TextureRenderTarget2D contactShadowsRT;
 
-
 	// ChromaticAberration
 	bool bChromaticAberration;
 	float fChromaticAberrationIntensity;
 	Texture2D spectralLutTexture;
-
 
 	// Vignette
 	bool bVignette;
@@ -234,13 +221,11 @@ public:
 	float fVignetteIntensity;
 	float fVignetteRoundness;
 
-
 	// Film Grain
 	bool bFilmGrain;
 	float fFilmGrainIntensity;
 	float fFilmGrainVariance;
 	uint32 iFilmGrainSignalToNoiseRatio;
-
 
 	// Dithering
 	bool bDithering;

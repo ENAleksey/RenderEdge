@@ -44,16 +44,16 @@ bool Texture2D::CreateFromFile(IDirect3DDevice9* pDevice, const std::string& fil
 		if (hr != D3D_OK)
 		{
 			if (hr == D3DXERR_INVALIDDATA)
-				LOG(ERROR) << "Texture2D::CreateFromFile -> Invalid Data: " + fileName;
+				LOG(ERROR) << __FUNCTION__ << " -> Invalid Data: " + fileName;
 			else
-				LOG(ERROR) << "Texture2D::CreateFromFile -> Unknown Error: " + fileName;
+				LOG(ERROR) << __FUNCTION__ << " -> Unknown Error: " + fileName;
 
 			return false;
 		}
 	}
 	else
 	{
-		LOG(ERROR) << "Texture2D::CreateFromFile -> Unknown texture format: " << fileName;
+		LOG(ERROR) << __FUNCTION__ << " -> Unknown texture format: " << fileName;
 		return false;
 	}
 
@@ -74,7 +74,7 @@ bool Texture2D::CreateFromFileInMPQ(IDirect3DDevice9* pDevice, HANDLE archive, c
 		{
 			if (!LoadBLP(pDevice, texture, Buffer))
 			{
-				LOG(ERROR) << "Texture2D::CreateFromFileInMPQ -> Failed to load BLP texture: " << fileName;
+				LOG(ERROR) << __FUNCTION__ << " -> Failed to load BLP texture: " << fileName;
 				return false;
 			}
 
@@ -95,14 +95,14 @@ bool Texture2D::CreateFromFileInMPQ(IDirect3DDevice9* pDevice, HANDLE archive, c
 
 			if (hr != D3D_OK)
 			{
-				LOG(ERROR) << "Texture2D::CreateFromFileInMPQ -> Failed to load texture: " << fileName;
+				LOG(ERROR) << __FUNCTION__ << " -> Failed to load texture: " << fileName;
 				return false;
 			}
 		}
 	}
 	else
 	{
-		LOG(ERROR) << "Texture2D::CreateFromFileInMPQ -> Unknown texture format: " << fileName;
+		LOG(ERROR) << __FUNCTION__ << " -> Unknown texture format: " << fileName;
 		return false;
 	}
 

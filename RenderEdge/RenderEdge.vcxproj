@@ -36,7 +36,7 @@
     <ClInclude Include="Source\FontManager.h" />
     <ClInclude Include="Source\fp_call.h" />
     <ClInclude Include="Source\FreeTypeFont.h" />
-    <ClInclude Include="Source\FVector.h" />
+    <ClInclude Include="Source\FColor.h" />
     <ClInclude Include="Source\GameOffsets.h" />
     <ClInclude Include="Source\GameUI.h" />
     <ClInclude Include="Source\GUI.h" />
@@ -58,6 +58,7 @@
     <ClInclude Include="Source\ResourceManager.h" />
     <ClInclude Include="Source\SMAA.h" />
     <ClInclude Include="Source\Storm.h" />
+    <ClInclude Include="Source\SystemTextures.h" />
     <ClInclude Include="Source\Texture2D.h" />
     <ClInclude Include="Source\TextureCube.h" />
     <ClInclude Include="Source\TextureManager.h" />
@@ -69,6 +70,7 @@
     <ResourceCompile Include="RenderEdge.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\Bin\Release\RenderEdge.ini" />
     <None Include="Shaders\ACES.fxh" />
     <None Include="Shaders\Bloom.fxh" />
     <None Include="Shaders\Common.fxh" />
@@ -118,7 +120,7 @@
     <ClCompile Include="Source\Font.cpp" />
     <ClCompile Include="Source\FontManager.cpp" />
     <ClCompile Include="Source\FreeTypeFont.cpp" />
-    <ClCompile Include="Source\FVector.cpp" />
+    <ClCompile Include="Source\FColor.cpp" />
     <ClCompile Include="Source\GameOffsets.cpp" />
     <ClCompile Include="Source\GameUI.cpp" />
     <ClCompile Include="Source\GUI.cpp" />
@@ -139,6 +141,7 @@
     <ClCompile Include="Source\ResourceManager.cpp" />
     <ClCompile Include="Source\SMAA.cpp" />
     <ClCompile Include="Source\Storm.cpp" />
+    <ClCompile Include="Source\SystemTextures.cpp" />
     <ClCompile Include="Source\Texture2D.cpp" />
     <ClCompile Include="Source\TextureCube.cpp" />
     <ClCompile Include="Source\TextureManager.cpp" />

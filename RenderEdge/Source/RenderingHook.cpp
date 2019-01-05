@@ -9,9 +9,8 @@
 
 namespace RenderingHook
 {
-	ERenderStage iCurrentRenderStage = ERenderStage::MainMenuUI;
+	ERenderStage iCurrentRenderStage = ERenderStage::Unknown;
 	bool bTranslucent = false;
-	bool bGameCamera = false;
 
 	bool bRenderSkybox = true;
 	bool bRenderTerrain = true;
@@ -35,6 +34,7 @@ namespace RenderingHook
 	bool bRenderOcclusionMask = true;
 	bool bRenderLightning = true;
 	bool bRenderFloatingText = true;
+	bool bRenderCineFilter = true;
 
 
 	ERenderStage GetRenderStage()
@@ -79,6 +79,26 @@ namespace RenderingHook
 		this_call<void>(address_RenderWorldObjects, pWorldFrame, iRenderStage, lightPreset, fogPreset, bInMenu);
 	}
 
+	int __fastcall RenderCineFilter_proxy(int a1)
+	{
+		iCurrentRenderStage = ERenderStage::CineFilter;
+
+		if (!bRenderCineFilter)
+			return 0;
+
+		return this_call<int>(address_RenderCineFilter, a1);
+	}
+
+	void __fastcall RenderUI_proxy(void *a1, int a2)
+	{
+		iCurrentRenderStage = ERenderStage::UI;
+
+		fast_call<void>(address_RenderUI, a1, a2);
+
+		if (Engine)
+			Engine->OnRenderUI();
+	}
+
 	int __fastcall RenderTranslucent_proxy()
 	{
 		bTranslucent = true;
@@ -94,14 +114,11 @@ namespace RenderingHook
 	int __fastcall RenderWorld_proxy(uint32 pWorldFrame, uint32 unused)
 	{
 		if (Engine)
-			Engine->OnRenderWorld_before();
+			Engine->OnRenderWorld();
 
 		int result = this_call<int>(address_RenderWorld, pWorldFrame);
 
 		iCurrentRenderStage = ERenderStage::UI;
-
-		if (Engine)
-			Engine->OnRenderWorld_after();
 
 		return result;
 	}
@@ -243,9 +260,9 @@ namespace RenderingHook
 
 	int __fastcall InitSceneView_proxy(uint32 pCamera, int unused, int pRect, int a4)
 	{
-		bGameCamera = (pCamera == GetGameCamera());
+		const uint32 pGameCamera = GetGameCamera();
 
-		if (bGameCamera)
+		if (pCamera == pGameCamera)
 		{
 			if (Engine)
 				Engine->OnCalcSceneView_before(pCamera);
@@ -261,7 +278,6 @@ namespace RenderingHook
 		return this_call<int>(address_InitSceneView, pCamera, pRect, a4);
 	}
 
-
 	bool Init()
 	{
 		bool bResult = true;
@@ -274,6 +290,8 @@ namespace RenderingHook
 		bResult &= Detour::Install(&address_RenderTranslucent, (uintptr_t)RenderTranslucent_proxy);
 		bResult &= Detour::Install(&address_RenderOpaque, (uintptr_t)RenderOpaque_proxy);
 		bResult &= Detour::Install(&address_RenderWorld, (uintptr_t)RenderWorld_proxy);
+		bResult &= Detour::Install(&address_RenderCineFilter, (uintptr_t)RenderCineFilter_proxy);
+		bResult &= Detour::Install(&address_RenderUI, (uintptr_t)RenderUI_proxy);
 		bResult &= Detour::Install(&address_BuildHPBars, (uintptr_t)BuildHPBars_proxy);
 		bResult &= Detour::Install(&address_BuildMainMenu, (uintptr_t)BuildMainMenu_proxy);
 

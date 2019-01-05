@@ -9,6 +9,7 @@
 #include "GUI.h"
 #include "Input.h"
 #include "FontManager.h"
+#include "d3d8to9.hpp"
 
 
 int32 g_iWheelDelta = 0;
@@ -93,7 +94,7 @@ jNothing jNATIVE jEnableVsync(jBoolean bEnable)
 	if ((jBoolean)g_bVsyncEnabled != bEnable)
 	{
 		g_bVsyncEnabled = bEnable;
-		g_bResetDevice = true;
+		ForceResetDevice8();
 	}
 }
 jNothing jNATIVE jEnableAnisoFiltering(jBoolean bEnable, jInteger maxAnisotropy)

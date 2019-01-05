@@ -1,6 +1,7 @@
 #include "CascadedShadows.h"
 #include "ResourceManager.h"
 #include "PostProcessing.h"
+#include "Log.h"
 
 CCascadedShadows* CascadedShadows = nullptr;
 
@@ -20,6 +21,7 @@ CCascadedShadows::CCascadedShadows(IDirect3DDevice9* pDevice)
 	fFoV = 45.0f;
 	iShadowMapSize = 1024;
 	iShadowMapSizeOld = iShadowMapSize;
+	vShadowBufferSize = D3DXVECTOR4(iShadowMapSize * NUM_CASCADES, iShadowMapSize, 1.0f / (iShadowMapSize * NUM_CASCADES), 1.0f / iShadowMapSize);
 	iShadowCullMode = D3DCULL::D3DCULL_NONE;
 	pShadowDepth = nullptr;
 
@@ -27,7 +29,6 @@ CCascadedShadows::CCascadedShadows(IDirect3DDevice9* pDevice)
 	iUnitsCount = 0;
 
 	fSplitWeight = 0.04f;
-	far_bound = D3DXVECTOR4(0, 0, 0, 0);
 	bVisCascades = false;
 
 	D3DVERTEXELEMENT9 vertexElements[] =
@@ -81,235 +82,160 @@ void CCascadedShadows::ReleaseMeshes()
 }
 
 
-
-
-
-D3DXMATRIX* MatrixLookAtLH(D3DXMATRIX *pout, CONST D3DXVECTOR3 *peye, CONST D3DXVECTOR3 *pat, CONST D3DXVECTOR3 *pup)
+D3DXMATRIX* MatrixLookAtLH(D3DXMATRIX* pOut, const D3DXVECTOR3* pEye, const D3DXVECTOR3* pAt, const D3DXVECTOR3* pUp)
 {
 	D3DXVECTOR3 axisX, axisY, axisZ;
 
-	D3DXVec3Subtract(&axisZ, pat, peye);
+	D3DXVec3Subtract(&axisZ, pAt, pEye);
 	D3DXVec3Normalize(&axisZ, &axisZ);
-	D3DXVec3Cross(&axisX, &axisZ, pup);
+	D3DXVec3Cross(&axisX, &axisZ, pUp);
 	D3DXVec3Normalize(&axisX, &axisX);
 	D3DXVec3Cross(&axisY, &axisX, &axisZ);
 	D3DXVec3Normalize(&axisY, &axisY);
 
-	pout->m[0][0] = axisX.x;
-	pout->m[1][0] = axisX.y;
-	pout->m[2][0] = axisX.z;
-	pout->m[3][0] = -D3DXVec3Dot(&axisX, peye);
-	pout->m[0][1] = axisY.x;
-	pout->m[1][1] = axisY.y;
-	pout->m[2][1] = axisY.z;
-	pout->m[3][1] = -D3DXVec3Dot(&axisY, peye);
-	pout->m[0][2] = axisZ.x;
-	pout->m[1][2] = axisZ.y;
-	pout->m[2][2] = axisZ.z;
-	pout->m[3][2] = -D3DXVec3Dot(&axisZ, peye);
-	pout->m[0][3] = 0.0f;
-	pout->m[1][3] = 0.0f;
-	pout->m[2][3] = 0.0f;
-	pout->m[3][3] = 1.0f;
+	pOut->m[0][0] = axisX.x;
+	pOut->m[1][0] = axisX.y;
+	pOut->m[2][0] = axisX.z;
+	pOut->m[3][0] = -D3DXVec3Dot(&axisX, pEye);
+	pOut->m[0][1] = axisY.x;
+	pOut->m[1][1] = axisY.y;
+	pOut->m[2][1] = axisY.z;
+	pOut->m[3][1] = -D3DXVec3Dot(&axisY, pEye);
+	pOut->m[0][2] = axisZ.x;
+	pOut->m[1][2] = axisZ.y;
+	pOut->m[2][2] = axisZ.z;
+	pOut->m[3][2] = -D3DXVec3Dot(&axisZ, pEye);
+	pOut->m[0][3] = 0.0f;
+	pOut->m[1][3] = 0.0f;
+	pOut->m[2][3] = 0.0f;
+	pOut->m[3][3] = 1.0f;
 
-	return pout;
+	return pOut;
 }
+
+D3DXMATRIX* MatrixOrthoOffCenterLH(D3DXMATRIX* pOut, float left, float right, float bottom, float top, float nearZ, float farZ)
+{
+	D3DXMatrixIdentity(pOut);
+
+	pOut[0][0] = 2.0f / (right - left);
+	pOut[1][1] = 2.0f / (top - bottom);
+	pOut[2][2] = 2.0f / (farZ - nearZ);
+	pOut[3][0] = -((right + left) / (right - left));
+	pOut[3][1] = -((top + bottom) / (top - bottom));
+	pOut[3][2] = -((farZ + nearZ) / (farZ - nearZ));
+
+	return pOut;
+}
+
 
 void CCascadedShadows::RenderCascade(uint32 curSplit)
 {
-	D3DXMATRIX matView, matProj;
+	D3DXMATRIX matView, matProj, matLightViewProj;
 
-	const float dist = min(fFarZ, g_fCameraFarZ);
-	D3DXVECTOR3 lightDir = g_bDefaultLightDir ? g_vGlobalLightDir : g_vLightDir;
-	D3DXVECTOR3 LightPos = f[curSplit].center - lightDir * dist;
-	MatrixLookAtLH(&matView, &LightPos, &f[curSplit].center, &D3DXVECTOR3(0.0f, 0.0f, 1.0f));
-	//D3DXMatrixLookAtLH(&matView, &LightPos, &f[curSplit].center, (g_fDebugValue == -1.0f) ? &D3DXVECTOR3(0.0f, 1.0f, 0.0f) : &D3DXVECTOR3(0.0f, 0.0f, 1.0f));
-
-	//MatrixLookAtLH(&matView, &D3DXVECTOR3(0.0f, 0.0f, 0.0f), &lightDir, &D3DXVECTOR3(0.0f, 0.0f, 1.0f));
-
-
-	//============================================================================
-
-
-	//{
-	float minX = FLT_MAX;
-	float minY = FLT_MAX;
-	float minZ = FLT_MAX;
-	float maxX = -FLT_MAX;
-	float maxY = -FLT_MAX;
-	float maxZ = -FLT_MAX;
-
-
-	//============================================================================
-
-
-	D3DXVECTOR4 trans0(f[curSplit].point[0], 1);
-	D3DXVec4Transform(&trans0, &trans0, &matView);
-
-	minX = trans0.x; maxX = trans0.x;
-	minY = trans0.y; maxY = trans0.y;
-	maxZ = trans0.z; minZ = trans0.z;
-
-	for (uint32 i = 0; i < 8; i++)
+	// View Matrix
 	{
-		D3DXVECTOR4 trans(f[curSplit].point[i], 1);
-		D3DXVec4Transform(&trans, &trans, &matView);
-
-		if (minX > trans.x) minX = trans.x;
-		if (maxX < trans.x) maxX = trans.x;
-		if (minY > trans.y) minY = trans.y;
-		if (maxY < trans.y) maxY = trans.y;
-		if (minZ > trans.z) minZ = trans.z;
-		if (maxZ < trans.z) maxZ = trans.z;
+		const float dist = min(fFarZ, g_fCameraFarZ);
+		D3DXVECTOR3 lightDir = g_bDefaultLightDir ? g_vGlobalLightDir : g_vLightDir;
+		D3DXVECTOR3 lightPos = pFrustums[curSplit].center - lightDir * dist;
+		MatrixLookAtLH(&matView, &lightPos, &pFrustums[curSplit].center, &D3DXVECTOR3(0.0f, 0.0f, 1.0f));
 	}
 
-
-	//D3DXMatrixOrthoOffCenterLH(&matProj, -1.0f, 1.0f, 1.0f, -1.0f, -minZ, -maxZ);
-
-	minZ = 10.0f;
-
-						 //float W = (abs(maxX - minX));
-						 //float H = (abs(maxY - minY));
-
-
-	D3DXMatrixOrthoOffCenterLH(&matProj, minX, maxX, minY, maxY, minZ, maxZ);
-	//D3DXMatrixOrthoLH(&matProj, W, H, minZ, maxZ);
-
-
-	//============================================================================
-
-
-	//D3DXVECTOR4 trans0(f[curSplit].point[0], 1);
-	//D3DXVec4Transform(&trans0, &trans0, &matView);
-	//
-	//minZ = trans0.z;
-	//maxZ = trans0.z;
-	//
-	//for (uint32 i = 1; i < 8; i++)
-	//{
-	//	D3DXVECTOR4 trans(f[curSplit].point[i], 1);
-	//	D3DXVec4Transform(&trans, &trans, &matView);
-	//
-	//	if (trans.z > maxZ) { maxZ = trans.z; }
-	//	if (trans.z < minZ) { minZ = trans.z; }
-	//}
-	//
-	//D3DXMatrixOrthoOffCenterLH(&matProj, -1.0f, 1.0f, 1.0f, -1.0f, -maxZ, -minZ);
-	//
-	//D3DXMATRIX viewInverse;
-	//D3DXMatrixInverse(&viewInverse, nullptr, &g_mView);
-	//
-	//for (uint32 i = 0; i < 8; i++)
-	//{
-	//	D3DXVECTOR4 trans(f[curSplit].point[i], 1);
-	//	D3DXVec4Transform(&trans, &trans, &(matView * matProj)); //(matView * matProj)
-	//
-	//	if (minX > trans.x) minX = trans.x;
-	//	if (maxX < trans.x) maxX = trans.x;
-	//	if (minY > trans.y) minY = trans.y;
-	//	if (maxY < trans.y) maxY = trans.y;
-	//	//if (minZ > trans.z) minZ = trans.z;
-	//	if (maxZ < trans.z) maxZ = trans.z;
-	//}
-
-	/*float quantizationStep = 1.0f / g_iShadowMapSize;
-	float qx = (float)std::remainder(minX, quantizationStep);
-	float qy = (float)std::remainder(minY, quantizationStep);
-	minX -= qx;
-	minY -= qy;
-	maxX += g_iShadowMapSize;
-	maxY += g_iShadowMapSize;
-
-	D3DXMatrixOrthoOffCenterLH(&matProj, minX, maxX, minY, maxY, minZ, maxZ);*/
-
-
-	//============================================================================
-
-	//minZ = 0.0f;
-
-	float fScaleX = 2.0f / (maxX - minX);
-	float fScaleY = 2.0f / (maxY - minY);
-	float fScaleZ = 1.0f;// 1.0f / (maxZ - minZ);
-
-	float fOffsetX = -0.5f*(maxX + minX)*fScaleX;
-	float fOffsetY = -0.5f*(maxY + minY)*fScaleY;
-	float fOffsetZ = 0.0f;// -minZ * fScaleZ;
-
-	D3DXMATRIX mCropView(
-		fScaleX, 0.0f, 0.0f, 0.0f,
-		0.0f, fScaleY, 0.0f, 0.0f,
-		0.0f, 0.0f, fScaleZ, 0.0f,
-		fOffsetX, fOffsetY, fOffsetZ, 1.0f);
-
-	//matProj *= mCropView;
-	//}
-
-	float fTexOffsX = 0.5f + (0.5f / iShadowMapSize / 3.0f);
-	float fTexOffsY = 0.5f + (0.5f / iShadowMapSize);
-	D3DXMATRIX m_bias(
-		0.5f, 0.0f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		fTexOffsX, fTexOffsY, 0.0f, 1.0f);
-
-	D3DXMATRIX matLightViewProj = matView * matProj;
-	mShadow[curSplit] = matLightViewProj * m_bias;
-
-
-	//========================================================================
-
-	D3DVIEWPORT9 oldViewport;
-	D3DVIEWPORT9 viewport{ curSplit * iShadowMapSize, 0, iShadowMapSize, iShadowMapSize, 0, 1 };
-	m_pDevice->GetViewport(&oldViewport);
-	m_pDevice->SetViewport(&viewport);
-
-	m_pEffect->SetTechnique("BuildDepthBuffer");
-
-	uint32 uPasses = 0;
-	m_pEffect->Begin(&uPasses, 0);
-	m_pEffect->BeginPass(0);
-
-	//=============== Render Scene ==================
-	m_pDevice->SetVertexDeclaration(pVertexDecl);
-
-	if (bTerrainShadows)
+	// Projection Matrix
 	{
-		for (const auto& mesh : terrainMeshes)
+		float minX = FLT_MAX;
+		float minY = FLT_MAX;
+		float minZ = FLT_MAX;
+		float maxX = -FLT_MAX;
+		float maxY = -FLT_MAX;
+		float maxZ = -FLT_MAX;
+
+		for (uint32 i = 0; i < 8; i++)
 		{
-			m_pEffect->SetMatrix("g_mLightViewProj", &(mesh->m_mWorld * matLightViewProj));
-			m_pEffect->SetTexture("g_albedoTexture", nullptr);
-			m_pEffect->SetFloat("g_fAlphaThreshold", 0.0f);
-			m_pEffect->CommitChanges();
-			mesh->Render(m_pDevice);
+			D3DXVECTOR4 trans(pFrustums[curSplit].point[i], 1.0f);
+			D3DXVec4Transform(&trans, &trans, &matView);
+
+			if (minX > trans.x) minX = trans.x;
+			if (maxX < trans.x) maxX = trans.x;
+			if (minY > trans.y) minY = trans.y;
+			if (maxY < trans.y) maxY = trans.y;
+			if (minZ > trans.z) minZ = trans.z;
+			if (maxZ < trans.z) maxZ = trans.z;
 		}
+
+		minZ = 10.0f;
+
+	//	if (g_fDebugValue == 1.0f)
+		//	MatrixOrthoOffCenterLH(&matProj, minX, maxX, minY, maxY, minZ, maxZ);
+		//else
+			D3DXMatrixOrthoOffCenterLH(&matProj, minX, maxX, minY, maxY, minZ, maxZ);
 	}
 
-	if (bObjectsShadows)
+	// Shadow Matrix
 	{
-		for (const auto& mesh : unitMeshes)
-		{
-			m_pEffect->SetMatrix("g_mLightViewProj", &(mesh->m_mWorld * matLightViewProj));
-			m_pEffect->SetTexture("g_albedoTexture", mesh->m_Texture);
-			m_pEffect->SetFloat("g_fAlphaThreshold", fAlphaThreshold);
-			m_pEffect->CommitChanges();
-			mesh->Render(m_pDevice);
-		}
+		float fTexOffsX = 0.5f + (0.5f * vShadowBufferSize.z);
+		float fTexOffsY = 0.5f + (0.5f * vShadowBufferSize.w);
+		D3DXMATRIX m_bias(
+			0.5f, 0.0f, 0.0f, 0.0f,
+			0.0f, -0.5f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			fTexOffsX, fTexOffsY, 0.0f, 1.0f);
+
+		matLightViewProj = matView * matProj;
+		mShadow[curSplit] = matLightViewProj * m_bias;
 	}
 
-	//===============================================
+	// Render Scene
+	{
+		D3DVIEWPORT9 oldViewport;
+		D3DVIEWPORT9 viewport{ curSplit * iShadowMapSize, 0, iShadowMapSize, iShadowMapSize, 0.0f, 1.0f };
+		m_pDevice->GetViewport(&oldViewport);
+		m_pDevice->SetViewport(&viewport);
 
-	m_pEffect->EndPass();
-	m_pEffect->End();
+		m_pEffect->SetTechnique("BuildDepthBuffer");
 
-	m_pDevice->SetViewport(&oldViewport);
+		uint32 uPasses = 0;
+		m_pEffect->Begin(&uPasses, 0);
+		m_pEffect->BeginPass(0);
+
+		m_pDevice->SetVertexDeclaration(pVertexDecl);
+
+		if (bTerrainShadows)
+		{
+			for (const auto& mesh : terrainMeshes)
+			{
+				m_pEffect->SetMatrix("g_mLightViewProj", &(mesh->m_mWorld * matLightViewProj));
+				m_pEffect->SetTexture("g_albedoTexture", nullptr);
+				m_pEffect->SetFloat("g_fAlphaThreshold", 0.0f);
+				m_pEffect->CommitChanges();
+				mesh->Render(m_pDevice);
+			}
+		}
+
+		if (bObjectsShadows)
+		{
+			for (const auto& mesh : unitMeshes)
+			{
+				m_pEffect->SetMatrix("g_mLightViewProj", &(mesh->m_mWorld * matLightViewProj));
+				m_pEffect->SetTexture("g_albedoTexture", mesh->m_Texture);
+				m_pEffect->SetFloat("g_fAlphaThreshold", fAlphaThreshold);
+				m_pEffect->CommitChanges();
+				mesh->Render(m_pDevice);
+			}
+		}
+
+		m_pEffect->EndPass();
+		m_pEffect->End();
+
+		m_pDevice->SetViewport(&oldViewport);
+	}
 }
 
-void CCascadedShadows::UpdateSplitDist(Frustum* f, float nd, float fd)
+void CCascadedShadows::UpdateSplitDist(Frustum* frustums, float nearClip, float farClip)
 {
 	float lambda = fSplitWeight;
-	float ratio = fd / nd;
+	float ratio = farClip / nearClip;
 
-	// calculate how many shadow maps do we really need
+	// Calculate how many shadow maps do we really need
 	/*m_currentSplitCount = 1;
 	if (!m_maxSplitDistances.empty())
 	{
@@ -323,123 +249,267 @@ void CCascadedShadows::UpdateSplitDist(Frustum* f, float nd, float fd)
 	for (uint32 i = 1; i < NUM_CASCADES; i++)
 	{
 		float si = i / (float)NUM_CASCADES;
-		f[i].neard = lambda * (nd*powf(ratio, si)) + (1 - lambda)*(nd + (fd - nd)*si);
-		f[i - 1].fard = f[i].neard;// *1.005f;
+		frustums[i].neard = lambda * (nearClip * powf(ratio, si)) + (1 - lambda) * (nearClip + (farClip - nearClip) * si);
+		frustums[i - 1].fard = frustums[i].neard;// *1.005f;
 	}
 
-	f[0].neard = nd;
-	f[NUM_CASCADES - 1].fard = fd;
+	frustums[0].neard = nearClip;
+	frustums[NUM_CASCADES - 1].fard = farClip;
 }
 
-void CCascadedShadows::UpdateFrustumPoints(Frustum& f, D3DXVECTOR3& center, D3DXVECTOR3& view_dir)
+void CCascadedShadows::UpdateCascades()
+{
+	float cascadeSplits[NUM_CASCADES];
+
+	float nearClip = g_fCameraNearZ;
+	float farClip = g_fCameraFarZ;
+	float clipRange = farClip - nearClip;
+
+	float minZ = nearClip;
+	float maxZ = nearClip + clipRange;
+
+	float range = maxZ - minZ;
+	float ratio = maxZ / minZ;
+
+	// Calculate split depths based on view camera furstum
+	// Based on method presentd in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+	for (uint32 i = 0; i < NUM_CASCADES; i++)
+	{
+		float p = (i + 1) / static_cast<float>(NUM_CASCADES);
+		float log = minZ * std::pow(ratio, p);
+		float uniform = minZ + range * p;
+		float d = fSplitWeight * (log - uniform) + uniform;
+		cascadeSplits[i] = (d - nearClip) / clipRange;
+	}
+
+	// Calculate orthographic projection matrix for each cascade
+	float lastSplitDist = 0.0;
+	for (uint32 i = 0; i < NUM_CASCADES; i++)
+	{
+		float splitDist = cascadeSplits[i];
+
+		D3DXVECTOR3 frustumCorners[8] = {
+			D3DXVECTOR3(-1.0f, 1.0f, -1.0f),
+			D3DXVECTOR3(1.0f, 1.0f, -1.0f),
+			D3DXVECTOR3(1.0f, -1.0f, -1.0f),
+			D3DXVECTOR3(-1.0f, -1.0f, -1.0f),
+			D3DXVECTOR3(-1.0f, 1.0f, 1.0f),
+			D3DXVECTOR3(1.0f, 1.0f, 1.0f),
+			D3DXVECTOR3(1.0f, -1.0f, 1.0f),
+			D3DXVECTOR3(-1.0f, -1.0f, 1.0f),
+		};
+
+		// Project frustum corners into world space
+		D3DXMATRIX invCam;
+		D3DXMatrixInverse(&invCam, nullptr, &(g_mProj * g_mView));
+		for (uint32 i = 0; i < 8; i++)
+		{
+			D3DXVECTOR4 invCorner = D3DXVECTOR4(frustumCorners[i], 1.0f);
+			D3DXVec4Transform(&invCorner, &invCorner, &invCam);
+			frustumCorners[i] = D3DXVECTOR3(invCorner);// / invCorner.w;
+		}
+
+		for (uint32 i = 0; i < 4; i++)
+		{
+			D3DXVECTOR3 dist = frustumCorners[i + 4] - frustumCorners[i];
+			frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
+			frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+		}
+
+		// Get frustum center
+		D3DXVECTOR3 frustumCenter = D3DXVECTOR3(0.0f, 0.0f, 0.0f);
+		for (uint32 i = 0; i < 8; i++)
+		{
+			frustumCenter += frustumCorners[i];
+		}
+		frustumCenter /= 8.0f;
+
+		float radius = 0.0f;
+		for (uint32 i = 0; i < 8; i++)
+		{
+			float distance = D3DXVec3Length(&(frustumCorners[i] - frustumCenter));
+			radius = max(radius, distance);
+		}
+		radius = std::ceil(radius * 16.0f) / 16.0f;
+
+		D3DXVECTOR3 maxExtents = D3DXVECTOR3(radius, radius, radius);
+		D3DXVECTOR3 minExtents = -maxExtents;
+
+		D3DXVECTOR3 lightDir = g_bDefaultLightDir ? g_vGlobalLightDir : g_vLightDir;
+		D3DXMATRIX lightViewMatrix, lightOrthoMatrix;
+		MatrixLookAtLH(&lightViewMatrix, &(frustumCenter - lightDir * -minExtents.z), &frustumCenter, &D3DXVECTOR3(0.0f, 0.0f, 1.0f));
+		D3DXMatrixOrthoOffCenterLH(&lightOrthoMatrix, minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, 0.0f, maxExtents.z - minExtents.z);
+
+		// Store split distance and matrix in cascade
+		splitDepths[i] = (g_fCameraNearZ + splitDist * clipRange) * -1.0f;
+		mShadow[i] = lightOrthoMatrix * lightViewMatrix;
+
+		lastSplitDist = cascadeSplits[i];
+	}
+
+	// Render Scene
+	for (uint32 i = 0; i < NUM_CASCADES; i++)
+	{
+		D3DVIEWPORT9 oldViewport;
+		D3DVIEWPORT9 viewport{ i * iShadowMapSize, 0, iShadowMapSize, iShadowMapSize, 0.0f, 1.0f };
+		m_pDevice->GetViewport(&oldViewport);
+		m_pDevice->SetViewport(&viewport);
+
+		m_pEffect->SetTechnique("BuildDepthBuffer");
+
+		uint32 uPasses = 0;
+		m_pEffect->Begin(&uPasses, 0);
+		m_pEffect->BeginPass(0);
+
+		m_pDevice->SetVertexDeclaration(pVertexDecl);
+
+		if (bTerrainShadows)
+		{
+			for (const auto& mesh : terrainMeshes)
+			{
+				m_pEffect->SetMatrix("g_mLightViewProj", &(mesh->m_mWorld * mShadow[i]));
+				m_pEffect->SetTexture("g_albedoTexture", nullptr);
+				m_pEffect->SetFloat("g_fAlphaThreshold", 0.0f);
+				m_pEffect->CommitChanges();
+				mesh->Render(m_pDevice);
+			}
+		}
+
+		if (bObjectsShadows)
+		{
+			for (const auto& mesh : unitMeshes)
+			{
+				m_pEffect->SetMatrix("g_mLightViewProj", &(mesh->m_mWorld * mShadow[i]));
+				m_pEffect->SetTexture("g_albedoTexture", mesh->m_Texture);
+				m_pEffect->SetFloat("g_fAlphaThreshold", fAlphaThreshold);
+				m_pEffect->CommitChanges();
+				mesh->Render(m_pDevice);
+			}
+		}
+		m_pEffect->EndPass();
+		m_pEffect->End();
+
+		m_pDevice->SetViewport(&oldViewport);
+	}
+}
+
+void CCascadedShadows::UpdateFrustumPoints(Frustum& frustum, const D3DXVECTOR3& center, const D3DXVECTOR3& view_dir)
 {
 	D3DXVECTOR3 up(0.0f, 0.0f, 1.0f);
 	D3DXVECTOR3 right;
 	D3DXVec3Cross(&right, &view_dir, &up);
 
-	D3DXVECTOR3 fc = center + view_dir * f.fard;
-	D3DXVECTOR3 nc = center + view_dir * f.neard;
+	D3DXVECTOR3 fc = center + view_dir * frustum.fard;
+	D3DXVECTOR3 nc = center + view_dir * frustum.neard;
 
 	D3DXVec3Normalize(&right, &right);
 	D3DXVECTOR3 tmp;
 	D3DXVec3Cross(&tmp, &right, &view_dir);
 	D3DXVec3Normalize(&up, &tmp);
 
-	float near_height = tan(f.fov / 2.0f) * f.neard;
-	float near_width = near_height * f.ratio;
-	float far_height = tan(f.fov / 2.0f) * f.fard;
-	float far_width = far_height * f.ratio;
+	float near_height = tan(frustum.fov / 2.0f) * frustum.neard;
+	float near_width = near_height * frustum.ratio;
+	float far_height = tan(frustum.fov / 2.0f) * frustum.fard;
+	float far_width = far_height * frustum.ratio;
 
-	f.point[0] = nc - up * near_height - right * near_width;
-	f.point[1] = nc + up * near_height - right * near_width;
-	f.point[2] = nc + up * near_height + right * near_width;
-	f.point[3] = nc - up * near_height + right * near_width;
+	frustum.point[0] = nc - up * near_height - right * near_width;
+	frustum.point[1] = nc + up * near_height - right * near_width;
+	frustum.point[2] = nc + up * near_height + right * near_width;
+	frustum.point[3] = nc - up * near_height + right * near_width;
 
-	f.point[4] = fc - up * far_height - right * far_width;
-	f.point[5] = fc + up * far_height - right * far_width;
-	f.point[6] = fc + up * far_height + right * far_width;
-	f.point[7] = fc - up * far_height + right * far_width;
+	frustum.point[4] = fc - up * far_height - right * far_width;
+	frustum.point[5] = fc + up * far_height - right * far_width;
+	frustum.point[6] = fc + up * far_height + right * far_width;
+	frustum.point[7] = fc - up * far_height + right * far_width;
 
 	D3DXVECTOR3 vCenter(0, 0, 0);
 	for (uint32 i = 0; i < 8; i++)
-		vCenter += f.point[i];
+		vCenter += frustum.point[i];
 	vCenter /= 8;
-	f.center = vCenter;
+
+	frustum.center = vCenter;
 }
 
 void CCascadedShadows::Render()
 {
-	float nearZ = max(100.0f, g_fCameraNearZ);
-	float farZ = min(fFarZ, g_fCameraFarZ);
-	UpdateSplitDist(f, nearZ, farZ);
-	D3DXVECTOR4 bound;
-	float far_b[3];
-	for (uint32 i = 0; i < NUM_CASCADES; i++)
+	// Update Textures
 	{
-		D3DXVec4Transform(&bound, &D3DXVECTOR4(0, 0, f[i].fard, 1), &g_mProj);
-		far_b[i] = bound.z;
-	}
-	far_bound = D3DXVECTOR4(far_b[0], far_b[1], far_b[2], 1);
+		if (iShadowMapSize != iShadowMapSizeOld)
+		{
+			shadowRT.Release();
+			SAFE_RELEASE(pShadowDepth);
 
-	D3DXVECTOR3 view_dir = D3DXVECTOR3(g_mView._13, g_mView._23, g_mView._33);
-	float camFoV = D3DXToRadian(fFoV); // GetCameraField(3).fl;
-	float aspectRatio = g_vBufferSize.x / g_vBufferSize.y;
+			iShadowMapSizeOld = iShadowMapSize;
+			vShadowBufferSize = D3DXVECTOR4(iShadowMapSize * NUM_CASCADES, iShadowMapSize, 1.0f / (iShadowMapSize * NUM_CASCADES), 1.0f / iShadowMapSize);
+		}
 
-	// ======================================================
+		if (shadowRT.IsEmpty())
+			if (!shadowRT.Create(m_pDevice, vShadowBufferSize.x, vShadowBufferSize.y, 1, ETextureUsage::RenderTarget, ETextureFormat::RFloat))
+				Message("Failed to create shadowRT");
 
-	if (iShadowMapSize != iShadowMapSizeOld)
-	{
-		shadowRT.Release();
-		SAFE_RELEASE(pShadowDepth);
-		iShadowMapSizeOld = iShadowMapSize;
+		if (pShadowDepth == nullptr)
+			if (FAILED(m_pDevice->CreateDepthStencilSurface(vShadowBufferSize.x, vShadowBufferSize.y, D3DFMT_D16, D3DMULTISAMPLE_NONE, 0, TRUE, &pShadowDepth, nullptr)))
+				Message("Failed to create pShadowDepth");
 	}
 
-	if (shadowRT.IsEmpty())
-		if (!shadowRT.Create(m_pDevice, iShadowMapSize * NUM_CASCADES, iShadowMapSize, 1, ETextureUsage::RenderTarget, ETextureFormat::RFloat))
-			Message("Failed to create shadowRT");
-
-	if (pShadowDepth == nullptr)
-		if (FAILED(m_pDevice->CreateDepthStencilSurface(iShadowMapSize * NUM_CASCADES, iShadowMapSize, D3DFMT_D16, D3DMULTISAMPLE_NONE, 0, TRUE, &pShadowDepth, nullptr)))
-			Message("Failed to create pShadowDepth");
-
-	// ======================================================
-
-	IDirect3DSurface9* pOldColorRT = nullptr;
-	IDirect3DSurface9* pOldDepthRT = nullptr;
-	m_pDevice->GetRenderTarget(0, &pOldColorRT);
-	m_pDevice->GetDepthStencilSurface(&pOldDepthRT);
-
-	m_pDevice->SetRenderTarget(0, shadowRT.GetSurface());
-	m_pDevice->SetDepthStencilSurface(pShadowDepth);
-	m_pDevice->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFFFFFFFF, 1.0f, 0);
-	shadowRT.ReleaseSurface();
-
-	m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
-	m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
-	m_pDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
-	m_pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-	m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	m_pDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
-	m_pDevice->SetRenderState(D3DRS_LIGHTING, FALSE);
-	m_pDevice->SetRenderState(D3DRS_CULLMODE, iShadowCullMode);
-
-	for (uint32 i = 0; i < NUM_CASCADES; i++)
+	// Update Splits Distances
 	{
-		f[i].fov = camFoV;
-		f[i].ratio = aspectRatio;
+		const float nearZ = max(100.0f, g_fCameraNearZ);
+		const float farZ = min(fFarZ, g_fCameraFarZ);
 
-		UpdateFrustumPoints(f[i], g_vCameraPos, view_dir);
+		UpdateSplitDist(pFrustums, nearZ, farZ);
 
-		RenderCascade(i);
+		for (uint32 i = 0; i < NUM_CASCADES; i++)
+		{
+			D3DXVECTOR4 bound;
+			D3DXVec4Transform(&bound, &D3DXVECTOR4(0, 0, pFrustums[i].fard, 1), &g_mProj);
+			splitDepths[i] = bound.z;
+		}
 	}
 
-	m_pDevice->SetRenderTarget(0, pOldColorRT);
-	m_pDevice->SetDepthStencilSurface(pOldDepthRT);
+	// Render Cascades
+	{
+		IDirect3DSurface9* pOldColorRT = nullptr;
+		IDirect3DSurface9* pOldDepthRT = nullptr;
+		m_pDevice->GetRenderTarget(0, &pOldColorRT);
+		m_pDevice->GetDepthStencilSurface(&pOldDepthRT);
 
-	SAFE_RELEASE(pOldColorRT);
-	SAFE_RELEASE(pOldDepthRT);
+		m_pDevice->SetRenderTarget(0, shadowRT.GetSurface());
+		m_pDevice->SetDepthStencilSurface(pShadowDepth);
+		m_pDevice->Clear(0, nullptr, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0xFFFFFFFF, 1.0f, 0);
+		shadowRT.ReleaseSurface();
+
+		m_pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
+		m_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+		m_pDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
+		m_pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+		m_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		m_pDevice->SetRenderState(D3DRS_FOGENABLE, FALSE);
+		m_pDevice->SetRenderState(D3DRS_LIGHTING, FALSE);
+		m_pDevice->SetRenderState(D3DRS_CULLMODE, iShadowCullMode);
+
+		const D3DXVECTOR3 view_dir = D3DXVECTOR3(g_mView._13, g_mView._23, g_mView._33);
+		const float camFoV = D3DXToRadian(fFoV);
+		const float aspectRatio = g_vBufferSize.x * g_vBufferSize.w;
+
+		for (uint32 i = 0; i < NUM_CASCADES; i++)
+		{
+			pFrustums[i].fov = camFoV;
+			pFrustums[i].ratio = aspectRatio;
+
+			UpdateFrustumPoints(pFrustums[i], g_vCameraPos, view_dir);
+
+			RenderCascade(i);
+		}
+
+		m_pDevice->SetRenderTarget(0, pOldColorRT);
+		m_pDevice->SetDepthStencilSurface(pOldDepthRT);
+
+		SAFE_RELEASE(pOldColorRT);
+		SAFE_RELEASE(pOldDepthRT);
+	}
 
 	// Debug Screen
 	if (PostProcessing)
-		PostProcessing->SetDebugScreen(EDebugScreen::CascadedShadows, &shadowRT, true, D3DXVECTOR2(1.0f, NUM_CASCADES / aspectRatio));
+		PostProcessing->SetDebugScreen(EDebugScreen::CascadedShadows, &shadowRT, true, D3DXVECTOR2(1.0f, NUM_CASCADES * g_vBufferSize.y * g_vBufferSize.z));
 }

@@ -129,7 +129,7 @@ namespace Input
 
 		if (Engine->OnGetMessage(hWnd, Msg, wParam, lParam))
 			Msg = WM_NULL;
-
+		
 		switch (Msg)
 		{
 		case WM_KEYDOWN:

@@ -33,16 +33,16 @@ bool TextureCube::CreateFromFile(IDirect3DDevice9* pDevice, const std::string& f
 		if (hr != D3D_OK)
 		{
 			if (hr == D3DXERR_INVALIDDATA)
-				LOG(ERROR) << "TextureCube::CreateFromFile -> Invalid Data: " << fileName;
+				LOG(ERROR) << __FUNCTION__ << " -> Invalid Data: " << fileName;
 			else
-				LOG(ERROR) << "TextureCube::CreateFromFile -> Unknown Error: " << fileName;
+				LOG(ERROR) << __FUNCTION__ << " -> Unknown Error: " << fileName;
 
 			return false;
 		}
 	}
 	else
 	{
-		LOG(ERROR) << "TextureCube::CreateFromFile -> Unknown texture format: " << fileName;
+		LOG(ERROR) << __FUNCTION__ << " -> Unknown texture format: " << fileName;
 		return false;
 	}
 
@@ -65,13 +65,13 @@ bool TextureCube::CreateFromFileInMPQ(IDirect3DDevice9* pDevice, HANDLE archive,
 		
 		if (hr != D3D_OK)
 		{
-			LOG(ERROR) << "TextureCube::CreateFromFileInMPQ -> Failed to load texture: " << fileName;
+			LOG(ERROR) << __FUNCTION__ << " -> Failed to load texture: " << fileName;
 			return false;
 		}
 	}
 	else
 	{
-		LOG(ERROR) << "TextureCube::CreateFromFileInMPQ -> Unknown texture format: " << fileName;
+		LOG(ERROR) << __FUNCTION__ << " -> Unknown texture format: " << fileName;
 		return false;
 	}
 

@@ -19,6 +19,8 @@ extern uintptr_t address_RenderWorldObjects;
 extern uintptr_t address_RenderTranslucent;
 extern uintptr_t address_RenderOpaque;
 extern uintptr_t address_RenderWorld;
+extern uintptr_t address_RenderCineFilter;
+extern uintptr_t address_RenderUI;
 extern uintptr_t address_BuildHPBars;
 extern uintptr_t address_BuildMainMenu;
 extern uintptr_t address_InitSceneView;

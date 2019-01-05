@@ -47,11 +47,23 @@ texture g_reflectionTexture;
 sampler2D reflectionSampler = sampler_state
 {
 	Texture = <g_reflectionTexture>;
-	MipFilter = NONE;
-	MinFilter = LINEAR;
-	MagFilter = LINEAR;
-	AddressU = BORDER;
-    AddressV = BORDER;
+	MipFilter = None;
+	MinFilter = Linear;
+	MagFilter = Linear;
+	BorderColor = 0x000000;
+	AddressU = Border;
+    AddressV = Border;
+};
+
+texture g_preIntegratedGFTexture;
+sampler2D preIntegratedGFSampler = sampler_state
+{
+	Texture = <g_preIntegratedGFTexture>;
+	MipFilter = None;
+	MinFilter = Linear;
+	MagFilter = Linear;
+	AddressU = Clamp;
+    AddressV = Clamp;
 };
 
 
@@ -59,7 +71,7 @@ float3 SampleNormal(sampler2D samp, float2 texCoord, float3 worldNormal, float3 
 {
 	if (g_bNormalMapping)
 	{
-		float3 normal = normalize(tex2D(samp, texCoord) * 2.0f - 1.0f);
+		float3 normal = normalize(tex2D(samp, texCoord).xyz * 2.0f - 1.0f);
 		
 		// TODO: use normalize(mul(normal, IN.tangentToWorld));
 		return normalize(mul(float3(-normal.x, -normal.y, normal.z), CalcCotangentFrame(worldNormal, -viewDir, texCoord)));
@@ -256,18 +268,31 @@ float GetSpecularOcclusion(float NoV, float Roughness, float AO)
 	return saturate(pow(abs(NoV + AO), a) - 1 + AO);
 }
 
-float3 EnvBRDFApprox(float3 SpecularColor, float Roughness, float NoV)
+float3 EnvBRDF(float3 SpecularColor, float Roughness, float NoV)
 {
-	const float4 c0 = { -1, -0.0275, -0.572, 0.022 };
-	const float4 c1 = { 1, 0.0425, 1.04, -0.04 };
-	float4 r = Roughness * c0 + c1;
-	float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
-	float2 AB = float2(-1.04, 1.04) * a004 + r.zw;
-
-	AB.y *= saturate(50.0 * SpecularColor.g);
-
-	return SpecularColor * AB.x + AB.y;
+	float2 AB = tex2Dlod(preIntegratedGFSampler, float4(NoV, Roughness, 0.0f, 0.0f)).rg;
+	return SpecularColor * AB.x + saturate(50.0f * SpecularColor.g) * AB.y;
 }
+
+/*texture g_envTexture2;
+sampler2D envMap2 = sampler_state
+{
+    Texture = <g_envTexture2>;
+    MinFilter = Linear;
+    MipFilter = Linear;
+    MagFilter = Linear;
+    AddressU = Clamp;
+    AddressV = Clamp;
+};
+
+float2 vector2ll(float3 v)
+{
+    float2 vo = 0.0f;
+    vo.x = atan2(v.x, v.z) / 3.1415926535897932f;
+    vo.y = -v.y;
+    vo = vo * 0.5f + 0.5f;
+    return vo;
+}*/
 
 float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness)
 {
@@ -278,7 +303,8 @@ float3 GetSkyLightReflection(float3 ReflectionVector, float Roughness)
 		ReflectionVector.yz = ReflectionVector.zy;
 		
 	float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, 8.0f);
-	float3 Reflection = texCUBElod(envMap, float4(ReflectionVector, AbsoluteSpecularMip));
+	float3 Reflection = texCUBElod(envMap, float4(ReflectionVector, AbsoluteSpecularMip)).rgb;
+	//float3 Reflection = tex2D(envMap2, vector2ll(ReflectionVector)).rgb;
 	
 	return Reflection * g_fCubemapBrightness;
 }
@@ -313,7 +339,7 @@ float3 ImageBasedLighting(float3 specularColor, float roughness, float3 normal, 
 	blendFactor *= GetSpecularOcclusion(NoV, roughness, fAO);
 	
 	float3 ImageBasedReflections = SkyLighting * blendFactor + SSR.rgb;
-	ImageBasedReflections *= EnvBRDFApprox(specularColor, roughness, NoV);
+	ImageBasedReflections *= EnvBRDF(specularColor, roughness, NoV);
 	ImageBasedReflections = -min(-ImageBasedReflections, 0.0f);
 	
 	return ImageBasedReflections;
@@ -323,18 +349,9 @@ float3 ImageBasedLighting(float3 specularColor, float roughness, float3 normal, 
 
 float3 SkyLight(float3 albedoColor, float3 normal, float fAO)
 {
-	float3 ambientColor = 0.0f;
-	if (g_bSkyLight)
-	{
-		float skyFactor = saturate(g_fSkyLightBlendFactor + 0.5f * normal.z);
-		ambientColor = lerp(g_vIndColor, g_vSkyColor, skyFactor);
-	}
-	else
-		ambientColor = g_vAmbColor;
+	float3 ambientColor = g_bSkyLight ? lerp(g_vIndColor, g_vSkyColor, saturate(normal.z)) : g_vAmbColor;
 	
-	ambientColor *= albedoColor * g_fSkyLightIntensity * fAO;
-	
-	return ambientColor;
+	return ambientColor * albedoColor * g_fSkyLightIntensity * fAO;
 }
 
 // ======================================

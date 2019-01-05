@@ -27,7 +27,14 @@ enum class ETextureUsage : uint32
 {
 	None = 0,
 	RenderTarget = 1,
-	DepthStencil = 2
+	DepthStencil = 2,
+	Dynamic = D3DUSAGE_DYNAMIC
+};
+
+enum class ETexturePool : uint32
+{
+	Default = 0,
+	Managed = 1
 };
 
 class TextureRenderTarget2D
@@ -42,7 +49,7 @@ private:
 
 public:
 	TextureRenderTarget2D();
-	TextureRenderTarget2D(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format);
+	TextureRenderTarget2D(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format, ETexturePool pool = ETexturePool::Default);
 	~TextureRenderTarget2D();
 
 	IDirect3DTexture9* GetTexture() { return texture; };
@@ -55,6 +62,6 @@ public:
 	IDirect3DSurface9* GetSurface();
 	void ReleaseSurface();
 
-	bool Create(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format);
+	bool Create(IDirect3DDevice9* pDevice, uint32 width, uint32 height, uint32 mipLevels, ETextureUsage usage, ETextureFormat format, ETexturePool pool = ETexturePool::Default);
 	void Release();
 };
