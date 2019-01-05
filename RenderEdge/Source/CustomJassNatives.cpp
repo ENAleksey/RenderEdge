@@ -75,11 +75,11 @@ jInteger jNATIVE jGetWheelDelta()
 }
 jReal jNATIVE jGetFPS()
 {
-	return Jass::to_jReal(g_fFPS);
+	return Jass::to_jReal(Engine->fFPS);
 }
 jReal jNATIVE jGetDeltaTime()
 {
-	return Jass::to_jReal(g_fDeltaTime);
+	return Jass::to_jReal(Engine->fDeltaTime);
 }
 jInteger jNATIVE jCOLOR_ARGB(jInteger a, jInteger r, jInteger g, jInteger b)
 {
@@ -91,16 +91,16 @@ jBoolean jNATIVE jIsGamePaused()
 }
 jNothing jNATIVE jEnableVsync(jBoolean bEnable)
 {
-	if ((jBoolean)g_bVsyncEnabled != bEnable)
+	if ((jBoolean)Engine->bVsyncEnabled != bEnable)
 	{
-		g_bVsyncEnabled = bEnable;
+		Engine->bVsyncEnabled = bEnable;
 		ForceResetDevice8();
 	}
 }
 jNothing jNATIVE jEnableAnisoFiltering(jBoolean bEnable, jInteger maxAnisotropy)
 {
-	g_bAnisoFiltering = bEnable;
-	g_iMaxAnisotropy = maxAnisotropy;
+	Engine->bAnisoFiltering = bEnable;
+	Engine->iMaxAnisotropy = maxAnisotropy;
 }
 
 

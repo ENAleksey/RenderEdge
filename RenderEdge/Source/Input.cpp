@@ -24,12 +24,12 @@ namespace Input
 
 	uint32 GetWindowWidth()
 	{
-		return g_vBufferSize.x;
+		return Engine ? Engine->vBufferSize.x : 0;
 	}
 
 	uint32 GetWindowHeight()
 	{
-		return g_vBufferSize.y;
+		return Engine ? Engine->vBufferSize.y : 0;
 	}
 
 	int32 GetWindowX()

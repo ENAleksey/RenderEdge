@@ -248,6 +248,15 @@ void CPostProcessing::ReleaseTemporaryResources()
 		noiseTextures[i].Release();
 }
 
+void CPostProcessing::ReloadShaders()
+{
+	if (ResourceManager)
+	{
+		SAFE_RELEASE(m_pEffect);
+		ResourceManager->LoadShader("Shaders\\PostProcess.cso", nullptr, &m_pEffect);
+	}
+}
+
 
 void CPostProcessing::DrawFullScreenTriangle(float x, float y, float width, float height)
 {
@@ -399,7 +408,7 @@ void CPostProcessing::ComputeEyeAdaptationValues()
 	m_pEffect->SetFloat("g_fMaxBrightness", MaxAverageLuminance);
 
 	m_pEffect->SetFloat("g_fExposureOffset", LocalExposureMultipler);
-	m_pEffect->SetFloat("g_fDeltaTime", g_fDeltaTime);
+	m_pEffect->SetFloat("g_fDeltaTime", Engine->fDeltaTime);
 	m_pEffect->SetFloat("g_fEyeAdaptationSpeedUp", fAutoExposureSpeedUp);
 	m_pEffect->SetFloat("g_fEyeAdaptationSpeedDown", fAutoExposureSpeedDown);
 
@@ -498,7 +507,7 @@ void CPostProcessing::RenderSMAA(TextureRenderTarget2D* sourceRT, TextureRenderT
 		Smaa->go(sourceRT, sourceRT, destRT->GetSurface(), iSMAAInput);
 		break;
 	case SMAA::INPUT_DEPTH:
-		Smaa->go(&g_depthRT, sourceRT, destRT->GetSurface(), iSMAAInput);
+		Smaa->go(&Engine->depthRT, sourceRT, destRT->GetSurface(), iSMAAInput);
 		break;
 	}
 
@@ -583,7 +592,7 @@ void CPostProcessing::SetJitteredProjectionMatrix()
 {
 	jitter = GenerateRandomOffset();
 
-	D3DXMATRIX mProjJittered = g_mProjNonJittered;
+	D3DXMATRIX mProjJittered = Engine->mProjNonJittered;
 
 	//projectionMatrix.m[2][0] += (jitter.x * 2.0f) * g_vViewportSize.z;
 	//projectionMatrix.m[2][1] += (jitter.y * -2.0f) * g_vViewportSize.w;
@@ -591,23 +600,23 @@ void CPostProcessing::SetJitteredProjectionMatrix()
 	mProjJittered.m[3][0] += jitter.x * fJitterSpreadTAA;
 	mProjJittered.m[3][1] += jitter.y * fJitterSpreadTAA;
 
-	jitter = D3DXVECTOR2(jitter.x * g_vViewportSize.z, jitter.y * g_vViewportSize.w);
+	jitter = D3DXVECTOR2(jitter.x * Engine->vViewportSize.z, jitter.y * Engine->vViewportSize.w);
 
-	g_mProj = mProjJittered;
+	Engine->mProjGlobal = mProjJittered;
 	//m_pDevice->SetTransform(D3DTS_PROJECTION, &mProjJittered);
 }
 
 void CPostProcessing::ResetProjectionMatrix()
 {
-	g_mProj = g_mProjNonJittered;
-	//m_pDevice->SetTransform(D3DTS_PROJECTION, &g_mProj);
+	Engine->mProjGlobal = Engine->mProjNonJittered;
+	//m_pDevice->SetTransform(D3DTS_PROJECTION, &Engine->mProjGlobal);
 }
 
 TextureRenderTarget2D* CPostProcessing::CheckHistory(TextureRenderTarget2D* sourceRT, int id)
 {
 	if (taaRTs[id].IsEmpty())
 	{
-		taaRTs[id].Create(m_pDevice, g_vBufferSize.x, g_vBufferSize.y, 1, ETextureUsage::RenderTarget, g_mainRT.GetFormat());
+		taaRTs[id].Create(m_pDevice, Engine->vBufferSize.x, Engine->vBufferSize.y, 1, ETextureUsage::RenderTarget, Engine->mainRT.GetFormat());
 
 		m_pEffect->SetTexture("g_mainTexture", sourceRT->GetTexture());
 		ApplyEffect(&taaRTs[id], "TemporalAA", 0);
@@ -653,7 +662,7 @@ void CPostProcessing::Dithering()
 	float rndOffsetX = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 	float rndOffsetY = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
 
-	const D3DXVECTOR4 vDitheringCoords = D3DXVECTOR4(g_vBufferSize.x / 64.0f, g_vBufferSize.y / 64.0f, rndOffsetX, rndOffsetY);
+	const D3DXVECTOR4 vDitheringCoords = D3DXVECTOR4(Engine->vBufferSize.x / 64.0f, Engine->vBufferSize.y / 64.0f, rndOffsetX, rndOffsetY);
 
 	m_pEffect->SetTexture("g_ditheringTexture", noiseTextures[iDitheringTextureIndex].GetTexture());
 	m_pEffect->SetValue("g_vDitheringCoords", &vDitheringCoords, sizeof(D3DXVECTOR4));
@@ -670,8 +679,8 @@ void CPostProcessing::RenderSSAO()
 	};
 
 	float ts = bSSAODownsample ? 0.5f : 1.0f;
-	int scaledWidth = g_vBufferSize.x * ts;
-	int scaledHeight = g_vBufferSize.y * ts;
+	int scaledWidth = Engine->vBufferSize.x * ts;
+	int scaledHeight = Engine->vBufferSize.y * ts;
 
 	TextureRenderTarget2D maskRT(m_pDevice, scaledWidth, scaledHeight, 1, ETextureUsage::RenderTarget, ETextureFormat::ARGB32);
 	TextureRenderTarget2D horizontalBlurRT(m_pDevice, scaledWidth, scaledHeight, 1, ETextureUsage::RenderTarget, ETextureFormat::ARGB32);
@@ -727,7 +736,7 @@ void CPostProcessing::RenderSSR(TextureRenderTarget2D* sourceRT)
 	if (ssrRT.IsEmpty())
 	{
 		float ts = bSSRDownsample ? 0.5f : 1.0f;
-		ssrRT.Create(m_pDevice, g_vBufferSize.x * ts, g_vBufferSize.y * ts, 1, ETextureUsage::RenderTarget, g_mainRT.GetFormat());
+		ssrRT.Create(m_pDevice, Engine->vBufferSize.x * ts, Engine->vBufferSize.y * ts, 1, ETextureUsage::RenderTarget, Engine->mainRT.GetFormat());
 	}
 
 	const float fRRayhitThreshold = (fSSRRayhitThreshold >= 1.0f) ? FLT_MAX : fSSRRayhitThreshold * 0.001f;
@@ -755,10 +764,10 @@ void CPostProcessing::RenderContactShadows()
 
 	if (contactShadowsRT.IsEmpty())
 	{
-		contactShadowsRT.Create(m_pDevice, g_vBufferSize.x * ts, g_vBufferSize.y * ts, 1, ETextureUsage::RenderTarget, ETextureFormat::R8);
+		contactShadowsRT.Create(m_pDevice, Engine->vBufferSize.x * ts, Engine->vBufferSize.y * ts, 1, ETextureUsage::RenderTarget, ETextureFormat::R8);
 	}
 
-	m_pEffect->SetValue("g_vLightDir", g_bDefaultLightDir ? &g_vGlobalLightDir : &g_vLightDir, sizeof(D3DXVECTOR3));
+	m_pEffect->SetValue("g_vLightDir", Engine->bDefaultLightDir ? &Engine->vGlobalLightDir : &Engine->vLightDir, sizeof(D3DXVECTOR3));
 	m_pEffect->SetFloat("g_fContactShadowsRayLength", fContactShadowsRayLength);
 	m_pEffect->SetFloat("g_fContactShadowsDownsample", ts);
 	ApplyEffect(&contactShadowsRT, "ContactShadows");
@@ -801,8 +810,8 @@ void CPostProcessing::RenderBloom(TextureRenderTarget2D* sourceRT)
 	float ratio = math::Clamp(fBloomAnamorphicRatio, -1.0f, 1.0f);
 	float rw = ratio < 0.0f ? -ratio : 0.0f;
 	float rh = ratio > 0.0f ? ratio : 0.0f;
-	uint32 tw = math::FloorToInt(g_vBufferSize.x / (2.0f - rw));
-	uint32 th = math::FloorToInt(g_vBufferSize.y / (2.0f - rh));
+	uint32 tw = math::FloorToInt(Engine->vBufferSize.x / (2.0f - rw));
+	uint32 th = math::FloorToInt(Engine->vBufferSize.y / (2.0f - rh));
 
 	// Determine the iteration count
 	//uint32 s = max(tw, th);
@@ -819,8 +828,8 @@ void CPostProcessing::RenderBloom(TextureRenderTarget2D* sourceRT)
 	// Bright EPass and Downsample
 	for (uint32 i = 0; i < iterations; i++)
 	{
-		downsampleRTs[i].Create(m_pDevice, tw, th, 1, ETextureUsage::RenderTarget, g_mainRT.GetFormat());
-		upsampleRTs[i].Create(m_pDevice, tw, th, 1, ETextureUsage::RenderTarget, g_mainRT.GetFormat());
+		downsampleRTs[i].Create(m_pDevice, tw, th, 1, ETextureUsage::RenderTarget, Engine->mainRT.GetFormat());
+		upsampleRTs[i].Create(m_pDevice, tw, th, 1, ETextureUsage::RenderTarget, Engine->mainRT.GetFormat());
 
 		m_pEffect->SetTexture("g_mainTexture", pLastRT->GetTexture());
 		m_pEffect->SetValue("g_vMainTextureSize", D3DXVECTOR2(1.0f / pLastRT->GetWidth(), 1.0f / pLastRT->GetHeight()), sizeof(D3DXVECTOR2));
@@ -867,7 +876,7 @@ void CPostProcessing::RenderBloom(TextureRenderTarget2D* sourceRT)
 				ResourceManager->LoadTexture2D(lensDirtTextureFileName, &lensDirtTexture);
 
 			float dirtRatio = (float)lensDirtTexture.GetWidth() / (float)lensDirtTexture.GetHeight();
-			float screenRatio = (float)g_vBufferSize.x / (float)g_vBufferSize.y;
+			float screenRatio = (float)Engine->vBufferSize.x / (float)Engine->vBufferSize.y;
 			D3DXVECTOR4 dirtTileOffset = D3DXVECTOR4(1.0f, 1.0f, 0.0f, 0.0f);
 
 			if (dirtRatio > screenRatio)
@@ -975,7 +984,7 @@ void CPostProcessing::FinalPass(TextureRenderTarget2D* sourceRT, IDirect3DSurfac
 	if (bDebugView)
 	{
 		PostProcessing->SetDebugScreen(EDebugScreen::SceneColor, sourceRT);
-		PostProcessing->SetDebugScreen(EDebugScreen::SceneDepth, &g_depthRT, true);
+		PostProcessing->SetDebugScreen(EDebugScreen::SceneDepth, &Engine->depthRT, true);
 
 		ApplyEffect(destRT, "FinalPass", (iDebugScreen == EDebugScreen::SceneDepth) ? EPass::DebugDepth : EPass::Debug);
 
@@ -1076,12 +1085,12 @@ void CPostProcessing::Render()
 
 	// =============================================================
 
-	D3DXMATRIX mView, mProj(g_mProjNonJittered), mViewInv, mProjInv;
+	D3DXMATRIX mView, mProj(Engine->mProjNonJittered), mViewInv, mProjInv;
 
 	// TO-DO: move this to SceneView class
 	{
-		D3DXVECTOR4 LocalViewOrigin = g_vCameraPos;
-		D3DXVECTOR3 Rotation = g_vCameraRotation;
+		D3DXVECTOR4 LocalViewOrigin = Engine->vCameraPos;
+		D3DXVECTOR3 Rotation = Engine->vCameraRotation;
 
 		D3DXMATRIX ViewRotationMatrix = GetInverseRotationMatrix(Rotation) * D3DXMATRIX(
 			0, 0, 1, 0,
@@ -1119,27 +1128,27 @@ void CPostProcessing::Render()
 	//D3DXMATRIX mInvViewProj;
 	//D3DXMatrixInverse(&mInvViewProj, nullptr, &(mView * mProj));
 
-	m_pEffect->SetInt("g_iFrameIndexMod8", g_iFrameIndexMod8);
-	m_pEffect->SetFloat("g_fTimer", g_fTimer);
+	m_pEffect->SetInt("g_iFrameIndexMod8", Engine->iFrameIndexMod8);
+	m_pEffect->SetFloat("g_fTimer", Engine->fTimer);
 	m_pEffect->SetMatrix("g_mProj", &mProj);
 	m_pEffect->SetMatrix("g_mView", &mView);
 	m_pEffect->SetMatrix("g_mViewInv", &mViewInv);
 	m_pEffect->SetMatrix("g_mProjInv", &mProjInv);
 	m_pEffect->SetMatrix("g_mViewProj", &(mView * mProj));
 	m_pEffect->SetMatrix("g_mInvViewProj", &(mProjInv * mViewInv));
-	m_pEffect->SetValue("g_vCameraPos", &g_vCameraPos, sizeof(D3DXVECTOR3));
-	m_pEffect->SetTexture("g_depthTexture", g_depthRT.GetTexture());
+	m_pEffect->SetValue("g_vCameraPos", &Engine->vCameraPos, sizeof(D3DXVECTOR3));
+	m_pEffect->SetTexture("g_depthTexture", Engine->depthRT.GetTexture());
 
-	const float fn = g_fCameraFarZ / g_fCameraNearZ;
-	m_pEffect->SetValue("g_vCameraClipPlanes", D3DXVECTOR4(1.0f - fn, fn, g_fCameraNearZ, g_fCameraFarZ), sizeof(D3DXVECTOR4));
+	const float fn = Engine->fCameraFarZ / Engine->fCameraNearZ;
+	m_pEffect->SetValue("g_vCameraClipPlanes", D3DXVECTOR4(1.0f - fn, fn, Engine->fCameraNearZ, Engine->fCameraFarZ), sizeof(D3DXVECTOR4));
 
 	D3DXVECTOR2 InvDeviceZToWorldZTransform = CreateInvDeviceZToWorldZTransform(mProj);
 	m_pEffect->SetValue("g_vInvDeviceZToWorldZTransform", &InvDeviceZToWorldZTransform, sizeof(D3DXVECTOR2));
 
-	m_pEffect->SetValue("g_vScreenScaleBias", &g_vScreenPositionScaleBias, sizeof(D3DXVECTOR4));
-	m_pEffect->SetValue("g_vBufferSize", &g_vBufferSize, sizeof(D3DXVECTOR4));
-	m_pEffect->SetValue("g_vViewportSize", &g_vViewportSize, sizeof(D3DXVECTOR4));
-	m_pEffect->SetValue("g_vViewportRect", &g_vViewportRect, sizeof(D3DXVECTOR4));
+	m_pEffect->SetValue("g_vScreenScaleBias", &Engine->vScreenPositionScaleBias, sizeof(D3DXVECTOR4));
+	m_pEffect->SetValue("g_vBufferSize", &Engine->vBufferSize, sizeof(D3DXVECTOR4));
+	m_pEffect->SetValue("g_vViewportSize", &Engine->vViewportSize, sizeof(D3DXVECTOR4));
+	m_pEffect->SetValue("g_vViewportRect", &Engine->vViewportRect, sizeof(D3DXVECTOR4));
 
 	// ===================================================================================
 
@@ -1150,28 +1159,28 @@ void CPostProcessing::Render()
 		if (bUseVelocity)
 			VelocityPass();
 
-		tempRT = new TextureRenderTarget2D(m_pDevice, g_vBufferSize.x, g_vBufferSize.y, 1, ETextureUsage::RenderTarget, g_mainRT.GetFormat());
+		tempRT = new TextureRenderTarget2D(m_pDevice, Engine->vBufferSize.x, Engine->vBufferSize.y, 1, ETextureUsage::RenderTarget, Engine->mainRT.GetFormat());
 
 		if (bSMAA)
 		{
-			TextureRenderTarget2D smaaRT(m_pDevice, g_vBufferSize.x, g_vBufferSize.y, 1, ETextureUsage::RenderTarget, g_mainRT.GetFormat());
-			RenderSMAA(&g_mainRT, &smaaRT);
+			TextureRenderTarget2D smaaRT(m_pDevice, Engine->vBufferSize.x, Engine->vBufferSize.y, 1, ETextureUsage::RenderTarget, Engine->mainRT.GetFormat());
+			RenderSMAA(&Engine->mainRT, &smaaRT);
 			RenderTAA(&smaaRT, tempRT);
 			smaaRT.Release();
 		}
 		else
 		{
-			RenderTAA(&g_mainRT, tempRT);
+			RenderTAA(&Engine->mainRT, tempRT);
 		}
 	}
 	else if (bSMAA)
 	{
-		tempRT = new TextureRenderTarget2D(m_pDevice, g_vBufferSize.x, g_vBufferSize.y, 1, ETextureUsage::RenderTarget, g_mainRT.GetFormat());
-		RenderSMAA(&g_mainRT, tempRT);
+		tempRT = new TextureRenderTarget2D(m_pDevice, Engine->vBufferSize.x, Engine->vBufferSize.y, 1, ETextureUsage::RenderTarget, Engine->mainRT.GetFormat());
+		RenderSMAA(&Engine->mainRT, tempRT);
 	}
 	else
 	{
-		tempRT = &g_mainRT;
+		tempRT = &Engine->mainRT;
 	}
 
 	// Auto Exposure
@@ -1203,7 +1212,7 @@ void CPostProcessing::Render()
 	}
 
 	// Composite
-	FinalPass(tempRT, g_pBackBuffer);
+	FinalPass(tempRT, Engine->pBackBufferSurface);
 
 	// Cleanup Anti-Aliasing Texture
 	if (bTemporalAA || bSMAA)

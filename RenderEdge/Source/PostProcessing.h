@@ -30,6 +30,7 @@ private:
 	void ApplyEffect(IDirect3DSurface9* destRT, const std::string& technique, uint32 pass = 0, bool clear = true);
 
 	IDirect3DDevice9* m_pDevice;
+	ID3DXEffect* m_pEffect;
 
 	// Effects
 	void ComputeEyeAdaptationValues();
@@ -55,10 +56,10 @@ public:
 
 	void OnResetDevice();
 	void OnLostDevice();
+	void ReloadShaders();
+
 	void SetJitteredProjectionMatrix();
 	void Render();
-
-	ID3DXEffect* m_pEffect;
 
 	// Debug View
 	bool bDebugView;

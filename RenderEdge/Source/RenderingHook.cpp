@@ -136,16 +136,19 @@ namespace RenderingHook
 		fast_call<void>(address_BuildHPBars, a1, unused, a2, a3);
 
 		uint32 pHPBarFrame = *((uint32*)a1 + 3);
-		if (pHPBarFrame)
-			*((float*)pHPBarFrame + 22) /= g_fWideScreenMul;
+		if (pHPBarFrame && Engine)
+			*((float*)pHPBarFrame + 22) /= Engine->fWideScreenMul;
 	}
 
 	void __fastcall MatrixPerspectiveFov_proxy(int matrix, int unused, float fovY, float aspectRatio, float nearZ, float farZ)
 	{
-		if (g_bDefaultProjectionMatrix)
+		if (!Engine)
+			return this_call<void>(address_MatrixPerspectiveFov, matrix, fovY, aspectRatio, nearZ, farZ);
+
+		if (Engine->bDefaultProjectionMatrix)
 		{
 			float yScale = 1.0f / tan(1.0f / sqrt(aspectRatio * aspectRatio + 1.0f) * fovY * 0.5f);
-			float xScale = yScale / (aspectRatio * g_fWideScreenMul);
+			float xScale = yScale / (aspectRatio * Engine->fWideScreenMul);
 
 			*(float*)matrix = xScale;
 			*(float*)(matrix + 16) = 0.0f;
@@ -172,16 +175,16 @@ namespace RenderingHook
 			float fXAxisMultiplier;
 			float fYAxisMultiplier;
 
-			if (g_vBufferSize.x > g_vBufferSize.y)
+			if (Engine->vBufferSize.x > Engine->vBufferSize.y)
 			{
 				const float fixValue = aspectRatio * 0.75f;
 				fXAxisMultiplier = 1.0f;
-				fYAxisMultiplier = (g_vBufferSize.x * g_vBufferSize.w) * fixValue;
+				fYAxisMultiplier = (Engine->vBufferSize.x * Engine->vBufferSize.w) * fixValue;
 			}
 			else
 			{
 				const float fixValue = 1.0f / (aspectRatio * 0.75f);
-				fXAxisMultiplier = (g_vBufferSize.y * g_vBufferSize.z) * fixValue;
+				fXAxisMultiplier = (Engine->vBufferSize.y * Engine->vBufferSize.z) * fixValue;
 				fYAxisMultiplier = 1.0f;
 			}
 

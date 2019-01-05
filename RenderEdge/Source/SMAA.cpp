@@ -60,8 +60,8 @@ void SMAA::OnResetDevice()
 
 void SMAA::InitTemporaryResources()
 {
-	edgeRT.Create(m_pDevice, g_vBufferSize.x, g_vBufferSize.y, 1, ETextureUsage::RenderTarget, ETextureFormat::RGBAHalf);
-	blendRT.Create(m_pDevice, g_vBufferSize.x, g_vBufferSize.y, 1, ETextureUsage::RenderTarget, ETextureFormat::RGBAHalf);
+	edgeRT.Create(m_pDevice, Engine->vBufferSize.x, Engine->vBufferSize.y, 1, ETextureUsage::RenderTarget, ETextureFormat::RGBAHalf);
+	blendRT.Create(m_pDevice, Engine->vBufferSize.x, Engine->vBufferSize.y, 1, ETextureUsage::RenderTarget, ETextureFormat::RGBAHalf);
 }
 
 void SMAA::ReleaseTemporaryResources()
@@ -87,7 +87,7 @@ void SMAA::edgesDetectionPass(TextureRenderTarget2D* edges, Input input)
 	m_pDevice->SetRenderTarget(0, edgeRT.GetSurface());
 	m_pDevice->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
 
-	pEffect->SetValue("pixelSize", &D3DXVECTOR2(g_vBufferSize.z, g_vBufferSize.w), sizeof(D3DXVECTOR2));
+	pEffect->SetValue("pixelSize", &D3DXVECTOR2(Engine->vBufferSize.z, Engine->vBufferSize.w), sizeof(D3DXVECTOR2));
 	pEffect->SetFloat("threshld", threshold);
 	pEffect->SetFloat("maxSearchSteps", float(maxSearchSteps));
 	pEffect->SetFloat("maxSearchStepsDiag", float(maxSearchStepsDiag));
@@ -159,10 +159,10 @@ void SMAA::quad()
 {
 	float quad[4][5] =
 	{
-		{ -1.0f - g_vBufferSize.z,  1.0f + g_vBufferSize.w, 0.5f, 0.0f, 0.0f },
-		{  1.0f - g_vBufferSize.z,  1.0f + g_vBufferSize.w, 0.5f, 1.0f, 0.0f },
-		{ -1.0f - g_vBufferSize.z, -1.0f + g_vBufferSize.w, 0.5f, 0.0f, 1.0f },
-		{  1.0f - g_vBufferSize.z, -1.0f + g_vBufferSize.w, 0.5f, 1.0f, 1.0f }
+		{ -1.0f - Engine->vBufferSize.z,  1.0f + Engine->vBufferSize.w, 0.5f, 0.0f, 0.0f },
+		{  1.0f - Engine->vBufferSize.z,  1.0f + Engine->vBufferSize.w, 0.5f, 1.0f, 0.0f },
+		{ -1.0f - Engine->vBufferSize.z, -1.0f + Engine->vBufferSize.w, 0.5f, 0.0f, 1.0f },
+		{  1.0f - Engine->vBufferSize.z, -1.0f + Engine->vBufferSize.w, 0.5f, 1.0f, 1.0f }
 	};
 	m_pDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
 }

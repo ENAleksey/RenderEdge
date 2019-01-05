@@ -21,7 +21,7 @@ void CResourceManager::LoadTexture2D(const std::string& fileName, Texture2D* pTe
 	if (bLocalFiles)
 		pTexture->CreateFromFile(m_pDevice, RenderEdgePath + fileName, format);
 	else
-		pTexture->CreateFromFileInMPQ(m_pDevice, mpqRenderEdge, fileName, format);
+		pTexture->CreateFromFileInMPQ(m_pDevice, Engine->hRenderEdgeMpq, fileName, format);
 }
 
 void CResourceManager::LoadTextureCube(const std::string& fileName, TextureCube* pTexture, bool bFromMpq, D3DFORMAT format)
@@ -34,7 +34,7 @@ void CResourceManager::LoadTextureCube(const std::string& fileName, TextureCube*
 	if (bLocalFiles)
 		pTexture->CreateFromFile(m_pDevice, RenderEdgePath + fileName, format);
 	else
-		pTexture->CreateFromFileInMPQ(m_pDevice, mpqRenderEdge, fileName, format);
+		pTexture->CreateFromFileInMPQ(m_pDevice, Engine->hRenderEdgeMpq, fileName, format);
 }
 
 void CResourceManager::LoadShader(const std::string& fileName, D3DXMACRO* defines, ID3DXEffect** pEffect, bool bFromMpq)
