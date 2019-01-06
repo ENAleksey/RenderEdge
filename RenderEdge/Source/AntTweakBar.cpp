@@ -14,8 +14,6 @@ CAntTweakBar* AntTweakBar = nullptr;
 
 CAntTweakBar::CAntTweakBar(IDirect3DDevice9* pDevice)
 {
-	LOG(DEBUG) << __func__;
-
 	m_pDevice = pDevice;
 	bActive = true;
 
@@ -24,7 +22,6 @@ CAntTweakBar::CAntTweakBar(IDirect3DDevice9* pDevice)
 
 CAntTweakBar::~CAntTweakBar()
 {
-	LOG(DEBUG) << __func__;
 	TwTerminate();
 }
 
