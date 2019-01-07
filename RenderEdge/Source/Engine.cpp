@@ -34,7 +34,7 @@
 
 CEngine* Engine = nullptr;
 
-const std::string RenderEdgeVersion = "RenderEdge v0.3.1";
+const std::string RenderEdgeVersion = "RenderEdge v0.3.1dev";
 std::string RenderEdgePath;
 
 std::chrono::high_resolution_clock::time_point start_time, last_present_time;
