@@ -101,8 +101,6 @@ uint32 GetGameBuildVersion()
 
 Direct3D8* WINAPI Direct3DCreate8_proxy(UINT SDKVersion)
 {
-	//LOG(DEBUG) << "Redirecting 'Direct3DCreate8(" << SDKVersion << ")'";
-
 	IDirect3D9* const d3d = Direct3DCreate9(D3D_SDK_VERSION);
 
 	if (d3d == nullptr)
@@ -125,9 +123,6 @@ bool HookDirect3DCreate8()
 	uintptr_t address_Direct3DCreate8 = (uintptr_t)GetProcAddress(hModule, "Direct3DCreate8");
 	if (address_Direct3DCreate8)
 		bResult = Detour::Install(&address_Direct3DCreate8, (uintptr_t)Direct3DCreate8_proxy);
-
-	if (hModule)
-		FreeLibrary(hModule);
 
 	return bResult;
 }
