@@ -577,26 +577,26 @@ bool CEngine::ReadConfigFile(const std::string& fileName)
 
 	// Terrain
 	if (CascadedShadows)
-		ConfigINI.GetBool("Material", "bCastShadows", CascadedShadows->bTerrainShadows);
-	ConfigINI.GetFloat("Material", "Roughness", fTerrainRoughness);
-	ConfigINI.GetFloat("Material", "Metallic", fTerrainMetallic);
-	ConfigINI.GetFloat("Material", "Specular", fTerrainSpecular);
-	ConfigINI.GetBool("Material", "bNormalMap", bNormalMapping);
-	ConfigINI.GetString("Material", "NormalMapTexture", normalTextureFileName);
+		ConfigINI.GetBool("Terrain", "bCastShadows", CascadedShadows->bTerrainShadows);
+	ConfigINI.GetFloat("Terrain", "Roughness", fTerrainRoughness);
+	ConfigINI.GetFloat("Terrain", "Metallic", fTerrainMetallic);
+	ConfigINI.GetFloat("Terrain", "Specular", fTerrainSpecular);
+	ConfigINI.GetBool("Terrain", "bNormalMap", bNormalMapping);
+	ConfigINI.GetString("Terrain", "NormalMapTexture", normalTextureFileName);
 
 	// Objects
 	if (CascadedShadows)
-		ConfigINI.GetBool("Material", "bCastShadows", CascadedShadows->bObjectsShadows);
-	ConfigINI.GetFloat("Material", "Roughness", fMaterialRoughness);
-	ConfigINI.GetFloat("Material", "Metallic", fMaterialMetallic);
-	ConfigINI.GetFloat("Material", "Specular", fMaterialSpecular);
-	ConfigINI.GetFloat("Material", "Translucent", fMaterialTranslucent);
-	ConfigINI.GetBool("Material", "bMaterialColor", bMaterialColor);
-	ConfigINI.GetBool("Material", "bMaterialVertexColor", bMaterialVertexColor);
-	ConfigINI.GetBool("Material", "bUnshadedMaterials", bUnshadedMaterials);
-	ConfigINI.GetBool("Material", "bUnfoggedMaterials", bUnfoggedMaterials);
-	ConfigINI.GetBool("Material", "bMaterialColorSRGB", bMaterialColorSRGB);
-	ConfigINI.GetBool("Material", "bVertexColorSRGB", bVertexColorSRGB);
+		ConfigINI.GetBool("Objects", "bCastShadows", CascadedShadows->bObjectsShadows);
+	ConfigINI.GetFloat("Objects", "Roughness", fMaterialRoughness);
+	ConfigINI.GetFloat("Objects", "Metallic", fMaterialMetallic);
+	ConfigINI.GetFloat("Objects", "Specular", fMaterialSpecular);
+	ConfigINI.GetFloat("Objects", "Translucent", fMaterialTranslucent);
+	ConfigINI.GetBool("Objects", "bMaterialColor", bMaterialColor);
+	ConfigINI.GetBool("Objects", "bMaterialVertexColor", bMaterialVertexColor);
+	ConfigINI.GetBool("Objects", "bUnshadedMaterials", bUnshadedMaterials);
+	ConfigINI.GetBool("Objects", "bUnfoggedMaterials", bUnfoggedMaterials);
+	ConfigINI.GetBool("Objects", "bMaterialColorSRGB", bMaterialColorSRGB);
+	ConfigINI.GetBool("Objects", "bVertexColorSRGB", bVertexColorSRGB);
 
 	// Skybox
 	ConfigINI.GetBool("Skybox", "bShading", bSkyboxShading);

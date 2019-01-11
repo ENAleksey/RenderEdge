@@ -116,7 +116,11 @@ bool HookDirect3DCreate8()
 {
 	bool bResult = false;
 
-	HMODULE hModule = LoadLibraryW(L"d3d8.dll");
+	HMODULE hModule = GetModuleHandleW(L"d3d8.dll");
+
+	if (!hModule)
+		hModule = LoadLibraryW(L"d3d8.dll");
+
 	if (!hModule)
 		return bResult;
 
